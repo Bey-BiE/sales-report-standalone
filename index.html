@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>รายงานยอดขาย</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&family=Prompt:wght@500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--ink:#1d2a26;--mute:#66736e;--line:#dde2dd;--acc:#0f766e;--accbg:#e1f2ef;--grid:#e6eae6;--bad:#c0392b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121816;--card:#1a221f;--ink:#e8efec;--mute:#93a39d;--line:#2c3733;--acc:#4fd1c0;--accbg:#1d3a35;--grid:#2a3532;--bad:#ff8a78;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121816;--card:#1a221f;--ink:#e8efec;--mute:#93a39d;--line:#2c3733;--acc:#4fd1c0;--accbg:#1d3a35;--grid:#2a3532;--bad:#ff8a78;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Noto Sans Thai",system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:16px;margin:0 0 10px}
+.sub{color:var(--mute);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.drop{border:2px dashed var(--line);text-align:center;padding:26px 16px;cursor:pointer}
+.drop.over,.drop:hover{border-color:var(--acc);background:var(--accbg)}
+button,select,input[type=text],input[type=date]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 11px}
+button{cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:var(--bg);font-weight:600}
+button.d{color:var(--bad);border-color:var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+label.f,div.f{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--mute)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent}
+.seg button.on{background:var(--acc);color:var(--bg);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{border:1px solid var(--line);border-radius:99px;padding:3px 11px;font-size:13px;cursor:pointer;background:var(--card);display:inline-flex;gap:6px;align-items:center}
+.chip i{width:10px;height:10px;border-radius:50%;display:inline-block;background:var(--line)}
+.chip.on{border-color:var(--acc);background:var(--accbg)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi small{color:var(--mute);display:block}.kpi b{font-size:21px}
+.cv{position:relative;height:380px}
+.tw{overflow:auto;max-height:340px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+thead th{position:sticky;top:0;background:var(--card)}
+.ds{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.ds:last-child{border:0}.ds .nm{flex:1;min-width:180px}.ds small{color:var(--mute)}
+.hide{display:none!important}
+.msg{color:var(--mute);margin:8px 0 0;font-size:13px}.err{color:var(--bad)}
+.tag{font-size:12px;background:var(--accbg);border-radius:6px;padding:1px 7px}
+/* ---- ธีมใหม่ ---- */
+:root{--bg:#eef1f7;--card:#fff;--ink:#0e1530;--mute:#5b6485;--line:#e1e6f2;--acc:#2f5bff;--accbg:#e8edff;--grid:#e8ecf5;--bad:#d6336c;--bar:rgba(238,241,247,.88)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1020;--card:#131a30;--ink:#e9edff;--mute:#8d97bd;--line:#232c4a;--acc:#7b95ff;--accbg:#1b2547;--grid:#222b49;--bad:#ff7aa2;--bar:rgba(11,16,32,.88)}}
+:root[data-theme="dark"]{--bg:#0b1020;--card:#131a30;--ink:#e9edff;--mute:#8d97bd;--line:#232c4a;--acc:#7b95ff;--accbg:#1b2547;--grid:#222b49;--bad:#ff7aa2;--bar:rgba(11,16,32,.88)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bar);backdrop-filter:blur(12px)}
+main{max-width:1180px;padding:22px 20px 56px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:11;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:var(--bar);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:40px;height:40px;border-radius:12px;background:var(--acc);color:var(--bg);display:grid;place-items:center;flex:none}
+h1{font:600 19px/1.2 Prompt,"Noto Sans Thai",sans-serif;margin:0}
+.top .sub{margin:2px 0 0;font-size:12px}
+h2{font:600 16px/1.3 Prompt,"Noto Sans Thai",sans-serif;margin:0 0 12px}
+.tabs{display:flex;gap:8px;flex:none}
+.card{border-radius:16px;padding:18px 20px;margin-bottom:16px}
+button,select,input[type=text],input[type=date]{border-radius:10px;padding:8px 12px;transition:border-color .15s,background .15s}
+button:hover:not(:disabled),select:hover{border-color:var(--acc)}
+button.p{background:var(--acc);border-color:var(--acc);color:var(--bg)}
+button.p:hover:not(:disabled){filter:brightness(1.08)}
+.ghost{border:0!important;background:transparent;color:var(--acc);padding:2px 8px;font-size:13px}
+.seg{background:var(--accbg);border:0;border-radius:11px;padding:3px;gap:2px}
+.seg button{border-radius:8px;padding:6px 13px;color:var(--mute)}
+.seg button.on{background:var(--card);color:var(--acc);box-shadow:0 1px 2px rgba(14,21,48,.14)}
+label.f,div.f{font-size:12px;font-weight:600;color:var(--mute);gap:5px}
+.chip{padding:5px 13px;font-size:13px}
+.chip.on{background:var(--accbg);border-color:var(--acc)}
+.chip i{width:9px;height:9px}
+.grp{margin-top:16px}
+.gh{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600}
+.drop{border:1.5px dashed var(--acc);border-radius:14px;background:var(--accbg);padding:30px 16px}
+.drop.over,.drop:hover{background:var(--card)}
+.kpis.card{background:transparent;border:0;padding:0;gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.kpi:first-child{background:var(--acc);border-color:var(--acc);color:var(--bg)}
+.kpi:first-child small{color:inherit;opacity:.85}
+.kpi small{font-size:12px}
+.kpi b{display:block;margin-top:2px;font:600 22px/1.25 Prompt,"Noto Sans Thai",sans-serif;overflow-wrap:anywhere}
+th{color:var(--mute);font-weight:600}
+tbody tr:hover td{background:var(--accbg)}
+.ds{padding:12px 0}
+.tag{background:var(--accbg);color:var(--acc);font-weight:600}
+.gwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:16px}
+.gp{border:1px solid var(--line);border-radius:14px;padding:12px 12px 10px;min-width:0;background:var(--bg)}
+.gh{margin-bottom:8px}
+.gt{display:flex;align-items:center;gap:8px}
+.cnt{font-style:normal;font-size:12px;font-weight:600;color:var(--acc);background:var(--accbg);border-radius:99px;padding:1px 9px}
+.gs{width:100%;margin-bottom:8px;font-size:13px;padding:6px 10px}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:6px;margin-top:0;max-height:176px;overflow:auto;padding:2px}
+.chip{border-radius:10px;padding:7px 10px;min-width:0;gap:8px;background:var(--card)}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip:not(.on){color:var(--mute)}
+.chip i{flex:none;width:10px;height:10px}
+#bchips .chip.on i{background:var(--acc)}
+.chips .none{grid-column:1/-1;color:var(--mute);font-size:13px;padding:6px}
+@media (max-width:600px){.top .sub{display:none}main{padding:16px 14px 48px}.top{padding:10px 14px}.card{padding:14px}}
+input[type=password]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.modal{position:fixed;inset:0;background:rgba(10,15,35,.55);display:grid;place-items:center;z-index:50;padding:16px}
+.modal .card{width:min(380px,100%);margin:0}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="7" width="4" height="13" rx="1.5"/><rect x="16" y="3" width="4" height="17" rx="1.5"/></svg></span>
+    <div><h1>รายงานยอดขาย</h1><p class="sub">เทียบยอดขายรายวัน เดือน ปี แยกตามรายการและสาขา</p></div></div>
+  <nav class="tabs"><button id="navBtn" class="p"></button></nav>
+</header>
+<main>
+<p class="msg" id="dbmsg"></p>
+
+
+<div class="card" id="vAdmin">
+  <h2>เลือกไฟล์ Excel</h2>
+  <div class="drop" id="drop" tabindex="0" role="button" aria-label="เลือกไฟล์ Excel">
+    <b>ลากไฟล์มาวาง หรือคลิกเพื่อเลือกไฟล์</b><br><span class="sub">รองรับ .xlsx .xls .csv</span>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv" class="hide">
+  </div>
+  <div class="msg" id="fmsg"></div>
+  <p class="msg"><button id="demo">ลองใช้ข้อมูลตัวอย่าง</button></p>
+  <div id="pend" class="hide">
+    <div class="row" style="margin-top:8px">
+      <label class="f">คอลัมน์วันที่<select id="cDate"></select></label>
+      <label class="f">คอลัมน์รายการ<select id="cItem"></select></label>
+      <label class="f">คอลัมน์ยอดเงิน<select id="cAmt"></select></label>
+      <label class="f">คอลัมน์จำนวน (ถ้ามี)<select id="cQty"></select></label>
+      <label class="f">คอลัมน์สาขา (ถ้ามี)<select id="cBr"></select></label>
+    </div>
+    <div id="mmsg" class="msg"></div>
+    <p class="msg"><button class="p" id="goBtn" disabled>ดูรายงาน →</button></p>
+
+  </div>
+</div>
+
+<div id="vAdmin2" class="hide">
+  <div class="card"><h2>บันทึกเป็นไฟล์รายงาน</h2>
+    <p class="msg" style="margin-top:0">ไฟล์นี้ไม่มีที่เก็บข้อมูลในตัว หลังเลือกไฟล์ Excel (และตั้งรหัสผ่านถ้าต้องการ) ให้ดาวน์โหลดไฟล์ฉบับใหม่ ข้อมูลและรหัสผ่านจะถูกฝังอยู่ในไฟล์นั้น เปิดแล้วเห็นรายงานทันที ส่งให้คนอื่นดูได้</p>
+    <p class="msg"><button class="p" id="dl" disabled>ดาวน์โหลดไฟล์รายงาน (พร้อมข้อมูล)</button></p></div>
+  <div class="card"><h2>รหัสผ่านเข้าหน้าเลือกไฟล์</h2>
+    <p class="msg" id="pwState" style="margin-top:0"></p>
+    <div class="row"><label class="f">รหัสผ่านใหม่<input type="password" id="pw1" autocomplete="new-password"></label><label class="f">ยืนยันรหัสผ่าน<input type="password" id="pw2" autocomplete="new-password"></label><button class="p" id="pwSet">ตั้งรหัสผ่าน</button><button id="pwDel" class="d hide">ลบรหัสผ่าน</button></div>
+    <p class="msg" id="pwMsg"></p>
+    <p class="msg">หมายเหตุ: รหัสผ่านนี้กันไม่ให้คนทั่วไปเปลี่ยนข้อมูลผ่านหน้าเลือกไฟล์ แต่ไฟล์ HTML เป็นโค้ดที่เปิดอ่านได้ ผู้ที่มีความรู้เทคนิคยังดูข้อมูลในไฟล์ได้ จึงไม่ควรใช้ปกป้องข้อมูลลับ</p></div>
+</div>
+<div class="card hide" id="dsCard">
+  <h2>ชุดข้อมูลในระบบ</h2>
+  <div id="dsList"><p class="msg">กำลังโหลด…</p></div>
+  <p class="msg">ติ๊กเลือกชุดข้อมูลที่จะนำมารวมในกราฟ ถ้าอัปโหลดไฟล์ที่ช่วงวันที่ซ้ำกัน ให้เลือกแค่ชุดเดียว ไม่เช่นนั้นยอดจะถูกนับซ้ำ</p>
+</div>
+
+<div id="rep" class="hide">
+  <div class="card">
+    <div class="row">
+      <div class="f">ดูแบบ<div class="seg" id="gran"><button data-v="day">รายวัน</button><button data-v="month" class="on">รายเดือน</button><button data-v="year">รายปี</button></div></div>
+      <div class="f">เปรียบเทียบ<div class="seg" id="mode"><button data-v="time" class="on">ตามช่วงเวลา</button><button data-v="yoy">ซ้อนปีเทียบปี</button></div></div>
+      <div class="f hide" id="dimf">แยกกราฟตาม<div class="seg" id="dim"><button data-v="item" class="on">รายการ</button><button data-v="branch">สาขา</button></div></div>
+      <div class="f">ค่าที่ดู<div class="seg" id="metric"><button data-v="amt" class="on">ยอดเงิน</button><button data-v="qty">จำนวน</button></div></div>
+      <div class="f">กราฟ<div class="seg" id="ctype"><button data-v="line" class="on">เส้น</button><button data-v="bar">แท่งแนวตั้ง</button><button data-v="barh">แท่งแนวนอน</button></div></div>
+      <label class="f">ตั้งแต่<input type="date" id="from"></label>
+      <label class="f">ถึง<input type="date" id="to"></label>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="be"> ปี พ.ศ.</label>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="sum"> รวมเป็นเส้นเดียว</label>
+    </div>
+    <div class="gwrap">
+      <div class="gp" id="igrp"><div class="gh"><span class="gt">รายการสินค้า <em class="cnt" id="icnt"></em></span><span><button id="all" class="ghost">เลือกทั้งหมด</button><button id="none" class="ghost">ล้าง</button></span></div>
+        <input type="text" id="isearch" class="gs hide" placeholder="ค้นหารายการ…" aria-label="ค้นหารายการสินค้า">
+        <div class="chips" id="chips"></div></div>
+      <div class="gp hide" id="bgrp"><div class="gh"><span class="gt">สาขา <em class="cnt" id="bcnt"></em></span><span><button id="ball" class="ghost">ทุกสาขา</button><button id="bnone" class="ghost">ล้าง</button></span></div>
+        <input type="text" id="bsearch" class="gs hide" placeholder="ค้นหาสาขา…" aria-label="ค้นหาสาขา">
+        <div class="chips" id="bchips"></div></div>
+    </div>
+  </div>
+  <div class="kpis card" id="kpis"></div>
+  <div class="card"><div class="cv" id="cvw"><canvas id="cv"></canvas></div></div>
+  <div class="card"><div class="tw"><table id="tb"></table></div>
+    <p class="msg"><button id="csv">ดาวน์โหลดตารางเป็น CSV</button></p></div>
+</div>
+<p class="msg" id="empty">ยังไม่มีข้อมูล ไปที่หน้า “เลือกไฟล์” เพื่อเลือกไฟล์ Excel ก่อน <button id="toImp" class="p">ไปหน้าเลือกไฟล์</button></p>
+</main>
+<div class="modal hide" id="gate" role="dialog" aria-modal="true" aria-labelledby="gt"><div class="card"><h2 id="gt">ใส่รหัสผ่านเพื่อเข้าหน้าเลือกไฟล์</h2><label class="f">รหัสผ่าน<input type="password" id="gpw" autocomplete="current-password"></label><p class="msg err" id="gmsg"></p><div class="row"><button class="p" id="gok">เข้า</button><button id="gcancel">ยกเลิก</button></div></div></div>
+<script id="embed" type="application/json">null</script>
+
+<script>
+(function(){
+var SRC='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+var pwCfg=null,unlocked=false,okCrypto=!!(window.crypto&&crypto.subtle);
+var COLORS=['#3b5bfd','#ff7a59','#12b886','#f5b301','#a855f7','#06b6d4','#ef476f','#84cc16','#64748b','#0ea5e9'];
+var MTH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+var CHUNK=2000,branches=[],bsel={},hasBr=false,colorOf={},iq='',bq='';
+var $=function(i){return document.getElementById(i)};
+var nf=new Intl.NumberFormat('th-TH',{maximumFractionDigits:2});
+var db=null,assets=null,isAdmin=false;
+var meta={},dsRows={},active={},loading={};
+var raw=[],head=[],fileName='',pendFile=null;
+var rows=[],items=[],sel={},st={gran:'month',mode:'time',metric:'amt',ctype:'line',dim:'item'},chart=null,lastTable=null,rangeKey='',confirmDel=null,view='report';
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fromIso(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function num(v){if(typeof v==='number')return v;var n=parseFloat(String(v).replace(/[,฿\s]/g,''));return isNaN(n)?0:n}
+
+/* ---------- เชื่อมต่อระบบจัดเก็บ ---------- */
+function initBackend(){}
+
+/* ---------- อ่านไฟล์ ---------- */
+var drop=$('drop'),fi=$('file');
+drop.onclick=function(){fi.click()};
+drop.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click()}};
+drop.ondragover=function(e){e.preventDefault();drop.classList.add('over')};
+drop.ondragleave=function(){drop.classList.remove('over')};
+drop.ondrop=function(e){e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])readFile(e.dataTransfer.files[0])};
+fi.onclick=function(e){e.stopPropagation()};
+fi.onchange=function(){if(fi.files[0])readFile(fi.files[0])};
+function readFile(f){
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      var a=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''});
+      pendFile=f;fileName=f.name;$('fmsg').textContent='อ่านไฟล์ '+f.name+' แล้ว';$('fmsg').className='msg';loadPending(a);
+    }catch(x){$('fmsg').textContent='อ่านไฟล์ไม่ได้ ลองตรวจว่าเป็นไฟล์ .xlsx หรือ .csv ที่ไม่เสียหาย';$('fmsg').className='msg err'}
+  };
+  r.readAsArrayBuffer(f);
+}
+function loadPending(a){
+  a=a.filter(function(r){return r.some(function(c){return c!==''})});
+  if(a.length<2){$('fmsg').textContent='ไฟล์ไม่มีข้อมูล';$('fmsg').className='msg err';return}
+  head=a[0].map(function(h,i){return String(h||('คอลัมน์ '+(i+1)))});raw=a.slice(1);
+  ['cDate','cItem','cAmt','cQty','cBr'].forEach(function(id){
+    $(id).innerHTML=((id==='cQty'||id==='cBr')?'<option value="-1">ไม่ใช้</option>':'')+head.map(function(h,i){return '<option value="'+i+'">'+esc(h)+'</option>'}).join('');
+  });
+  var g=function(re,fb){var i=head.findIndex(function(h){return re.test(h)});return i<0?fb:i};
+  $('cDate').value=g(/วัน|date|เวลา|day/i,0);
+  $('cItem').value=g(/สินค้า|รายการ|item|product|name|ชื่อ|menu|เมนู/i,Math.min(1,head.length-1));
+  $('cAmt').value=g(/ยอด|amount|total|รวม|เงิน|sales|revenue|ราคา/i,Math.min(2,head.length-1));
+  $('cQty').value=g(/จำนวน|qty|quantity|ชิ้น/i,-1);
+  $('cBr').value=g(/สาขา|branch|store|ร้าน|shop/i,-1);
+  $('pend').classList.remove('hide');updPend();buildPending();
+}
+function updPend(){
+  [].forEach.call(document.querySelectorAll('.admin'),function(e){e.classList.toggle('hide',!isAdmin)});
+  [].forEach.call(document.querySelectorAll('.noadmin'),function(e){e.classList.toggle('hide',isAdmin)});
+}
+function pd(v){
+  if(v instanceof Date&&!isNaN(v)){var d=new Date(v.getTime()+12*36e5);return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
+  if(typeof v==='number'&&v>20000&&v<80000){var u=new Date(Math.round((v-25569)*864e5));return new Date(u.getUTCFullYear(),u.getUTCMonth(),u.getUTCDate())}
+  if(typeof v==='string'){
+    var m=v.trim().match(/^(\d{1,4})[\/\-.](\d{1,2})[\/\-.](\d{1,4})/);
+    if(m){var a=+m[1],b=+m[2],c=+m[3],y,mo,d;
+      if(a>31){y=a;mo=b;d=c}else{d=a;mo=b;y=c}
+      if(y>2400)y-=543;if(y<100)y+=2000;
+      var dt=new Date(y,mo-1,d);if(!isNaN(dt)&&dt.getMonth()===mo-1)return dt}
+  }
+  return null;
+}
+function buildPending(){
+  var di=+$('cDate').value,ii=+$('cItem').value,ai=+$('cAmt').value,qi=+$('cQty').value,bi=+$('cBr').value,bad=0,out=[];
+  raw.forEach(function(r){
+    var d=pd(r[di]);if(!d){bad++;return}
+    out.push({d:d,item:String(r[ii]===''?'(ไม่ระบุ)':r[ii]).trim(),amt:num(r[ai]),qty:qi>=0?num(r[qi]):0,branch:(bi>=0&&r[bi]!=='')?String(r[bi]).trim():''});
+  });
+  dsRows.local=out;active.local=true;
+  $('mmsg').textContent='ใช้ได้ '+out.length+' แถว'+(bad?' · ข้าม '+bad+' แถวที่อ่านวันที่ไม่ได้':'')+' — ถ้ากราฟไม่ถูกต้อง ลองเปลี่ยนคอลัมน์ด้านบน';
+  render();
+}
+['cDate','cItem','cAmt','cQty','cBr'].forEach(function(i){$(i).onchange=buildPending});
+
+/* ---------- รายการชุดข้อมูล ---------- */
+function renderDs(){
+  var ids=Object.keys(meta).sort(function(a,b){return (meta[b].at||0)-(meta[a].at||0)});
+  var h='';
+  if(dsRows.local)h+=dsRow('local',{name:'ไฟล์ที่เพิ่งเลือก (ยังไม่บันทึก)',n:dsRows.local.length},true);
+  ids.forEach(function(id){h+=dsRow(id,meta[id],false)});
+  $('dsList').innerHTML=h||'<p class="msg">'+(db?'ยังไม่มีชุดข้อมูลในระบบ':'ไม่มีชุดข้อมูล')+'</p>';
+}
+function dsRow(id,m,tmp){
+  var ready=!!dsRows[id];
+  var dl=(!tmp&&m.asset)?' <a href="/_blob/'+m.asset+'" download="'+esc(m.file||'file')+'">ไฟล์ต้นฉบับ</a>':'';
+  var del=(!tmp&&isAdmin&&view==='admin')?'<button class="d" data-del="'+id+'">'+(confirmDel===id?'กดอีกครั้งเพื่อลบ':'ลบ')+'</button>':'';
+  return '<div class="ds"><input type="checkbox" data-ds="'+id+'" aria-label="รวมในกราฟ"'+(active[id]?' checked':'')+(ready?'':' disabled')+'>'+
+    '<div class="nm"><b>'+esc(m.name||id)+'</b>'+(tmp?' <span class="tag">ชั่วคราว</span>':'')+'<br><small>'+nf.format(m.n||0)+' แถว'+(m.from?' · '+m.from+' ถึง '+m.to:'')+(ready?'':' · กำลังโหลด…')+dl+'</small></div>'+del+'</div>';
+}
+$('dsList').onchange=function(e){var id=e.target.dataset&&e.target.dataset.ds;if(id){active[id]=e.target.checked;render()}};
+/* ---------- รวมข้อมูลและวาดกราฟ ---------- */
+function render(){
+  rows=[];Object.keys(active).forEach(function(id){if(active[id]&&dsRows[id])rows=rows.concat(dsRows[id])});
+  renderDs();
+  var home=view==='report';
+  $('vAdmin').classList.toggle('hide',home);
+  $('navBtn').textContent=home?(pwCfg?'🔒 เลือกไฟล์':'เลือกไฟล์'):'← กลับรายงาน';
+  $('vAdmin2').classList.toggle('hide',home);
+  $('dl').disabled=!(dsRows.local&&dsRows.local.length);
+  $('goBtn').disabled=!rows.length;
+  $('rep').classList.toggle('hide',!(home&&rows.length));
+  $('empty').classList.toggle('hide',!(home&&!rows.length));
+  if(!rows.length&&chart){chart.destroy();chart=null}
+  if(!home||!rows.length)return;
+  var tot={};rows.forEach(function(r){tot[r.item]=(tot[r.item]||0)+r.amt});
+  items=Object.keys(tot).sort(function(a,b){return tot[b]-tot[a]});
+  var cur={};items.forEach(function(i){if(sel[i])cur[i]=1});
+  if(!Object.keys(cur).length)items.slice(0,5).forEach(function(i){cur[i]=1});
+  sel=cur;
+  var bt={};rows.forEach(function(r){var b=r.branch||'(ไม่ระบุสาขา)';bt[b]=(bt[b]||0)+r.amt});
+  branches=Object.keys(bt).sort(function(a,b){return bt[b]-bt[a]});
+  hasBr=rows.some(function(r){return !!r.branch});
+  var bc={};branches.forEach(function(b){if(bsel[b])bc[b]=1});
+  if(!Object.keys(bc).length)branches.forEach(function(b){bc[b]=1});
+  bsel=bc;
+  $('bgrp').classList.toggle('hide',!hasBr);$('dimf').classList.toggle('hide',!hasBr);
+  var t=rows.map(function(r){return +r.d}),mn=iso(new Date(Math.min.apply(null,t))),mx=iso(new Date(Math.max.apply(null,t))),rk=mn+'|'+mx;
+  if(rk!==rangeKey){rangeKey=rk;$('from').value=mn;$('to').value=mx}
+  renderChips();draw();
+}
+function yr(y){return $('be').checked?y+543:y}
+function mt(s,q){return !q||String(s).toLowerCase().indexOf(q)>=0}
+function chipHtml(name,on,attr,i){return '<span class="chip'+(on?' on':'')+'" tabindex="0" role="checkbox" aria-checked="'+(!!on)+'" title="'+esc(name)+'" '+attr+'="'+i+'"><i></i><span>'+esc(name)+'</span></span>'}
+function renderChips(){
+  var bh=branches.map(function(b,i){return mt(b,bq)?chipHtml(b,bsel[b],'data-b',i):''}).join('');
+  var ih=items.map(function(it,i){return mt(it,iq)?chipHtml(it,sel[it],'data-i',i):''}).join('');
+  $('bchips').innerHTML=bh||'<span class="none">ไม่พบสาขา</span>';
+  $('chips').innerHTML=ih||'<span class="none">ไม่พบรายการ</span>';
+  $('isearch').classList.toggle('hide',items.length<=6);$('bsearch').classList.toggle('hide',branches.length<=6);
+  $('icnt').textContent=items.filter(function(k){return sel[k]}).length+'/'+items.length;
+  $('bcnt').textContent=branches.filter(function(k){return bsel[k]}).length+'/'+branches.length;
+  paintDots();
+}
+function paintDots(){
+  [].forEach.call($('chips').querySelectorAll('.chip'),function(c){var k=items[+c.dataset.i];c.firstChild.style.background=(sel[k]&&colorOf[k])?colorOf[k]:''});
+  [].forEach.call($('bchips').querySelectorAll('.chip'),function(c){var k=branches[+c.dataset.b];c.firstChild.style.background=(bsel[k]&&colorOf[k])?colorOf[k]:''});
+}
+$('chips').onclick=function(e){var c=e.target.closest('.chip');if(!c)return;var it=items[+c.dataset.i];sel[it]=sel[it]?0:1;renderChips();draw()};
+$('chips').onkeydown=function(e){if(e.key==='Enter'||e.key===' '){var c=e.target.closest('.chip');if(c){e.preventDefault();var i=+c.dataset.i;c.click();var n=$('chips').querySelector('[data-i="'+i+'"]');n&&n.focus()}}};
+$('all').onclick=function(){items.forEach(function(i){if(mt(i,iq))sel[i]=1});renderChips();draw()};
+$('none').onclick=function(){if(!iq)sel={};else items.forEach(function(i){if(mt(i,iq))sel[i]=0});renderChips();draw()};
+$('bchips').onclick=function(e){var c=e.target.closest('.chip');if(!c)return;var b=branches[+c.dataset.b];bsel[b]=bsel[b]?0:1;renderChips();draw()};
+$('bchips').onkeydown=function(e){if(e.key==='Enter'||e.key===' '){var c=e.target.closest('.chip');if(c){e.preventDefault();var i=+c.dataset.b;c.click();var n=$('bchips').querySelector('[data-b="'+i+'"]');n&&n.focus()}}};
+$('ball').onclick=function(){branches.forEach(function(b){if(mt(b,bq))bsel[b]=1});renderChips();draw()};
+$('bnone').onclick=function(){if(!bq)bsel={};else branches.forEach(function(b){if(mt(b,bq))bsel[b]=0});renderChips();draw()};
+$('isearch').oninput=function(){iq=this.value.trim().toLowerCase();renderChips()};
+$('bsearch').oninput=function(){bq=this.value.trim().toLowerCase();renderChips()};
+
+function key(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return st.gran==='day'?y+'-'+m+'-'+dd:st.gran==='month'?y+'-'+m:''+y}
+function label(k){var p=k.split('-');if(p.length===3)return +p[2]+' '+MTH[p[1]-1]+' '+String(yr(+p[0])).slice(-2);if(p.length===2)return MTH[p[1]-1]+' '+yr(+p[0]);return String(yr(+p[0]))}
+function compute(){
+  var f=$('from').value,t=$('to').value,m=st.metric,sum=$('sum').checked,data={},xs={};
+  rows.forEach(function(r){
+    var s=iso(r.d),brn=r.branch||'(ไม่ระบุสาขา)';
+    if((f&&s<f)||(t&&s>t)||!sel[r.item]||(hasBr&&!bsel[brn]))return;
+    var name=sum?'รวมที่เลือก':(st.dim==='branch'&&hasBr?brn:r.item),x,sn=name;
+    if(st.mode==='yoy'){x=r.d.getMonth();sn=name+' '+yr(r.d.getFullYear())}else x=key(r.d);
+    (data[sn]=data[sn]||{})[x]=(data[sn][x]||0)+r[m];xs[x]=1;
+  });
+  var xk=st.mode==='yoy'?[0,1,2,3,4,5,6,7,8,9,10,11]:Object.keys(xs).sort();
+  return {xk:xk,xl:st.mode==='yoy'?MTH:xk.map(label),names:Object.keys(data).sort(),data:data};
+}
+function draw(){
+  var c=compute(),isBar=st.ctype!=='line',cs=getComputedStyle(document.documentElement);
+  var ink=cs.getPropertyValue('--ink').trim(),grid=cs.getPropertyValue('--grid').trim();
+  colorOf={};var ds=c.names.map(function(n,i){var col=COLORS[i%COLORS.length];colorOf[n]=col;
+    return {label:n,data:c.xk.map(function(x){return c.data[n][x]==null?(isBar?0:null):c.data[n][x]}),borderColor:col,backgroundColor:isBar?col:col+'33',borderWidth:2,tension:.25,pointRadius:c.xk.length>40?0:3,spanGaps:true}});
+  if(chart)chart.destroy();
+  var hz=st.ctype==='barh';
+  $('cvw').style.height=hz?Math.min(2400,Math.max(380,c.xk.length*(isBar?Math.max(1,c.names.length)*16+10:22)+80))+'px':'380px';
+  chart=new Chart($('cv'),{type:isBar?'bar':'line',data:{labels:c.xl,datasets:ds},options:{indexAxis:hz?'y':'x',responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false,axis:hz?'y':'x'},
+    plugins:{legend:{labels:{color:ink,font:{family:'Noto Sans Thai'}}},tooltip:{callbacks:{label:function(x){return x.dataset.label+': '+nf.format((hz?x.parsed.x:x.parsed.y)||0)}}}},
+    scales:hz?{y:{ticks:{color:ink,autoSkip:false},grid:{color:grid}},x:{beginAtZero:true,ticks:{color:ink,callback:function(v){return nf.format(v)}},grid:{color:grid}}}:{x:{ticks:{color:ink,maxRotation:60,autoSkip:true},grid:{color:grid}},y:{beginAtZero:true,ticks:{color:ink,callback:function(v){return nf.format(v)}},grid:{color:grid}}}}});
+  paintDots();
+  var total=0,best='-',bv=-1,pk='-',pv=-1,pt={};
+  c.names.forEach(function(n){var s=0;c.xk.forEach(function(x){var v=c.data[n][x]||0;s+=v;pt[x]=(pt[x]||0)+v});total+=s;if(s>bv){bv=s;best=n}});
+  c.xk.forEach(function(x,i){if((pt[x]||0)>pv){pv=pt[x]||0;pk=c.xl[i]}});
+  var u=st.metric==='amt'?' กีบ':' ชิ้น';
+  $('kpis').innerHTML=[['ยอดรวมที่เลือก',nf.format(total)+u],['อันดับ 1',best],['ช่วงที่สูงสุด',pk+' ('+nf.format(Math.max(pv,0))+')'],['จำนวนช่วงเวลา',c.xk.length]].map(function(k){return '<div class="kpi"><small>'+k[0]+'</small><b>'+esc(k[1])+'</b></div>'}).join('');
+  var h='<thead><tr><th>'+(st.mode==='yoy'?'เดือน':'ช่วงเวลา')+'</th>'+c.names.map(function(n){return '<th>'+esc(n)+'</th>'}).join('')+'<th>รวม</th></tr></thead><tbody>';
+  var csv=[['ช่วงเวลา'].concat(c.names,['รวม'])];
+  c.xk.forEach(function(x,i){var s=0,line=[c.xl[i]];
+    var td=c.names.map(function(n){var v=c.data[n][x]||0;s+=v;line.push(v);return '<td>'+(v?nf.format(v):'-')+'</td>'}).join('');
+    line.push(s);csv.push(line);h+='<tr><td>'+esc(c.xl[i])+'</td>'+td+'<td><b>'+nf.format(s)+'</b></td></tr>'});
+  $('tb').innerHTML=c.names.length?h+'</tbody>':'<tbody><tr><td>เลือกรายการอย่างน้อย 1 รายการ</td></tr></tbody>';lastTable=csv;
+}
+function seg(id,k){$(id).onclick=function(e){var b=e.target.closest('button');if(!b)return;[].forEach.call($(id).children,function(x){x.classList.toggle('on',x===b)});st[k]=b.dataset.v;if(k==='mode')$('gran').style.opacity=st.mode==='yoy'?.4:1;draw()}}
+seg('gran','gran');seg('mode','mode');seg('metric','metric');seg('ctype','ctype');seg('dim','dim');
+['from','to','be','sum'].forEach(function(i){$(i).onchange=draw});
+$('csv').onclick=function(){
+  if(!lastTable)return;
+  var t='\ufeff'+lastTable.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"'}).join(',')}).join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='sales-report.csv';a.click();
+};
+$('demo').onclick=function(){
+  var names=['กาแฟเย็น','ชาไทย','ครัวซองต์','เค้กช็อกโกแลต','น้ำส้มคั้น'],base=[120,90,60,40,30],a=[['วันที่','รายการ','จำนวน','ยอดขาย']],seed=7;
+  function rnd(){seed=(seed*9301+49297)%233280;return seed/233280}
+  for(var y=2024;y<=2025;y++)for(var m=0;m<12;m++){var dim=new Date(y,m+1,0).getDate();
+    for(var d=1;d<=dim;d++)names.forEach(function(n,i){var q=Math.round(base[i]/10*(0.6+rnd()*0.8)*(1+(y-2024)*0.15)*(1+0.25*Math.sin((m-2)/12*6.28)));a.push([new Date(y,m,d,12),n,q,q*(35+i*15)])})}
+  fileName='ข้อมูลตัวอย่าง.xlsx';pendFile=null;$('fmsg').textContent='กำลังใช้ข้อมูลตัวอย่าง (2 ปี 5 รายการ)';$('fmsg').className='msg';loadPending(a);
+};
+function readHash(){
+  var v=location.hash==='#import'?'import':'report';
+  if(v==='import'&&pwCfg&&!unlocked){location.hash='report';openGate();return}
+  view=v;window.scrollTo(0,0);render();
+}
+window.addEventListener('hashchange',readHash);
+$('navBtn').onclick=function(){go(view==='report'?'import':'report')};
+$('toImp').onclick=function(){go('import')};
+$('goBtn').onclick=function(){location.hash='report'};
+function go(v){
+  if(v==='import'&&pwCfg&&!unlocked){openGate();return}
+  if(location.hash==='#'+v)readHash();else location.hash=v;
+}
+
+/* ---------- รหัสผ่านเข้าหน้าเลือกไฟล์ ---------- */
+function b2h(buf){return Array.prototype.map.call(new Uint8Array(buf),function(x){return ('0'+x.toString(16)).slice(-2)}).join('')}
+function h2b(h){var a=new Uint8Array(h.length/2);for(var i=0;i<a.length;i++)a[i]=parseInt(h.substr(i*2,2),16);return a}
+function derive(pw,saltHex,it){
+  if(!okCrypto)return Promise.reject(new Error('nocrypto'));
+  return crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits'])
+    .then(function(k){return crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:h2b(saltHex),iterations:it},k,256)}).then(b2h);
+}
+function makePw(pw){var salt=b2h(crypto.getRandomValues(new Uint8Array(16)));return derive(pw,salt,150000).then(function(h){return {salt:salt,it:150000,hash:h}})}
+function checkPw(pw){return derive(pw,pwCfg.salt,pwCfg.it).then(function(h){return h===pwCfg.hash})}
+function openGate(){$('gmsg').textContent='';$('gpw').value='';$('gate').classList.remove('hide');setTimeout(function(){$('gpw').focus()},0)}
+function closeGate(){$('gate').classList.add('hide')}
+function tryGate(){
+  checkPw($('gpw').value).then(function(ok){
+    if(ok){unlocked=true;closeGate();go('import')}else{$('gmsg').textContent='รหัสผ่านไม่ถูกต้อง'}
+  }).catch(function(){$('gmsg').textContent='เบราว์เซอร์นี้ตรวจรหัสผ่านไม่ได้ ลองใช้ Chrome, Edge หรือ Firefox'});
+}
+$('gok').onclick=tryGate;$('gcancel').onclick=closeGate;
+$('gpw').onkeydown=function(e){if(e.key==='Enter')tryGate();if(e.key==='Escape')closeGate()};
+function updPwUi(){
+  $('pwState').textContent=pwCfg?'ตั้งรหัสผ่านไว้แล้ว: ต้องใส่รหัสผ่านก่อนเข้าหน้านี้':'ยังไม่ได้ตั้งรหัสผ่าน: ใครเปิดไฟล์นี้ก็เข้าหน้าเลือกไฟล์ได้';
+  $('pwDel').classList.toggle('hide',!pwCfg);
+  $('pwSet').textContent=pwCfg?'เปลี่ยนรหัสผ่าน':'ตั้งรหัสผ่าน';
+  render();
+}
+$('pwSet').onclick=function(){
+  var a=$('pw1').value,b=$('pw2').value,m=$('pwMsg');m.className='msg err';
+  if(a.length<4){m.textContent='รหัสผ่านต้องยาวอย่างน้อย 4 ตัวอักษร';return}
+  if(a!==b){m.textContent='รหัสผ่านสองช่องไม่ตรงกัน';return}
+  makePw(a).then(function(c){
+    pwCfg=c;unlocked=true;$('pw1').value='';$('pw2').value='';
+    m.className='msg';m.textContent='ตั้งรหัสผ่านแล้ว กดดาวน์โหลดไฟล์รายงานด้านบนเพื่อเก็บรหัสผ่านนี้ไว้ในไฟล์';updPwUi();
+  }).catch(function(){m.textContent='เบราว์เซอร์นี้ตั้งรหัสผ่านไม่ได้ ลองใช้ Chrome, Edge หรือ Firefox'});
+};
+$('pwDel').onclick=function(){pwCfg=null;$('pwMsg').className='msg';$('pwMsg').textContent='ลบรหัสผ่านแล้ว กดดาวน์โหลดไฟล์รายงานเพื่อบันทึกการเปลี่ยนแปลง';updPwUi()};
+
+/* ---------- ดาวน์โหลดไฟล์รายงานพร้อมข้อมูลและรหัสผ่าน ---------- */
+$('dl').onclick=function(){
+  var out=dsRows.local;if(!out||!out.length)return;
+  var idx=Object.create(null),its=[],bx=Object.create(null),bl=[];
+  var comp=out.map(function(r){if(!(r.item in idx)){idx[r.item]=its.length;its.push(r.item)}var b=-1;if(r.branch){if(!(r.branch in bx)){bx[r.branch]=bl.length;bl.push(r.branch)}b=bx[r.branch]}return [iso(r.d),idx[r.item],r.amt,r.qty,b]});
+  var json=JSON.stringify({v:1,name:fileName,items:its,branches:bl,rows:comp,pw:pwCfg}).replace(/</g,'\\u003c');
+  var html=SRC.replace(/(<script id="embed" type="application\/json">)[\s\S]*?(<\/script>)/,function(m,a,b){return a+json+b});
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download='รายงานยอดขาย.html';a.click();
+};
+var EMB=null;try{EMB=JSON.parse($('embed').textContent)}catch(e){}
+if(EMB&&EMB.rows&&EMB.rows.length){
+  var _i=EMB.items||[],_b=EMB.branches||[];
+  dsRows.local=EMB.rows.map(function(r){return {d:fromIso(r[0]),item:_i[r[1]]||'(ไม่ระบุ)',amt:r[2],qty:r[3],branch:(r[4]>=0)?(_b[r[4]]||''):''}});
+  active.local=true;fileName=EMB.name||'';
+}
+if(EMB&&EMB.pw)pwCfg=EMB.pw;
+updPwUi();readHash();initBackend();
+})();
+</script>
+</body>
+</html>
