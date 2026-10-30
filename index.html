@@ -118,7 +118,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
 <p class="msg" id="dbmsg"></p>
 
 
-<div class="card" id="vAdmin">
+<div class="card hide" id="vAdmin">
   <h2>เลือกไฟล์ Excel</h2>
   <div class="drop" id="drop" tabindex="0" role="button" aria-label="เลือกไฟล์ Excel">
     <b>ลากไฟล์มาวาง หรือคลิกเพื่อเลือกไฟล์</b><br><span class="sub">รองรับ .xlsx .xls .csv</span>
@@ -141,9 +141,11 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
 </div>
 
 <div id="vAdmin2" class="hide">
-  <div class="card"><h2>บันทึกเป็นไฟล์รายงาน</h2>
-    <p class="msg" style="margin-top:0">ไฟล์นี้ไม่มีที่เก็บข้อมูลในตัว หลังเลือกไฟล์ Excel (และตั้งรหัสผ่านถ้าต้องการ) ให้ดาวน์โหลดไฟล์ฉบับใหม่ ข้อมูลและรหัสผ่านจะถูกฝังอยู่ในไฟล์นั้น เปิดแล้วเห็นรายงานทันที ส่งให้คนอื่นดูได้</p>
-    <p class="msg"><button class="p" id="dl" disabled>ดาวน์โหลดไฟล์รายงาน (พร้อมข้อมูล)</button></p></div>
+  <div class="card"><h2>การบันทึกข้อมูล</h2>
+    <p class="msg" style="margin-top:0">ระบบบันทึกข้อมูลและรหัสผ่านไว้ในเบราว์เซอร์นี้ให้อัตโนมัติ เปิดไฟล์นี้อีกครั้งด้วยเบราว์เซอร์เดิมก็เห็นรายงานเดิม</p>
+    <div class="row" style="margin-top:10px"><button class="p" id="fsave">บันทึกทับไฟล์นี้</button><button id="dl" disabled>ดาวน์โหลดไฟล์รายงาน (พร้อมข้อมูล)</button><button id="clr" class="d" disabled>ล้างข้อมูล</button></div>
+    <p class="msg" id="saveMsg"></p>
+    <p class="msg">“บันทึกทับไฟล์นี้” ใช้ได้ใน Chrome / Edge บนคอมพิวเตอร์: เลือกไฟล์รายงานตัวนี้เมื่อเบราว์เซอร์ถาม ไฟล์จะมีข้อมูลและรหัสผ่านฝังอยู่ ส่งให้คนอื่นเปิดดูได้ และครั้งต่อไปจะบันทึกลงไฟล์ให้เองหลังกดอนุญาตหนึ่งครั้ง ส่วนการบันทึกในเบราว์เซอร์ใช้ได้เฉพาะเครื่องนี้</p></div>
   <div class="card"><h2>รหัสผ่านเข้าหน้าเลือกไฟล์</h2>
     <p class="msg" id="pwState" style="margin-top:0"></p>
     <div class="row"><label class="f">รหัสผ่านใหม่<input type="password" id="pw1" autocomplete="new-password"></label><label class="f">ยืนยันรหัสผ่าน<input type="password" id="pw2" autocomplete="new-password"></label><button class="p" id="pwSet">ตั้งรหัสผ่าน</button><button id="pwDel" class="d hide">ลบรหัสผ่าน</button></div>
@@ -183,7 +185,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
   <div class="card"><div class="tw"><table id="tb"></table></div>
     <p class="msg"><button id="csv">ดาวน์โหลดตารางเป็น CSV</button></p></div>
 </div>
-<p class="msg" id="empty">ยังไม่มีข้อมูล ไปที่หน้า “เลือกไฟล์” เพื่อเลือกไฟล์ Excel ก่อน <button id="toImp" class="p">ไปหน้าเลือกไฟล์</button></p>
+<p class="msg hide" id="empty">ยังไม่มีข้อมูล ไปที่หน้า “เลือกไฟล์” เพื่อเลือกไฟล์ Excel ก่อน <button id="toImp" class="p">ไปหน้าเลือกไฟล์</button></p>
 </main>
 <div class="modal hide" id="gate" role="dialog" aria-modal="true" aria-labelledby="gt"><div class="card"><h2 id="gt">ใส่รหัสผ่านเพื่อเข้าหน้าเลือกไฟล์</h2><label class="f">รหัสผ่าน<input type="password" id="gpw" autocomplete="current-password"></label><p class="msg err" id="gmsg"></p><div class="row"><button class="p" id="gok">เข้า</button><button id="gcancel">ยกเลิก</button></div></div></div>
 <script id="embed" type="application/json">null</script>
@@ -267,7 +269,7 @@ function buildPending(){
     var d=pd(r[di]);if(!d){bad++;return}
     out.push({d:d,item:String(r[ii]===''?'(ไม่ระบุ)':r[ii]).trim(),amt:num(r[ai]),qty:qi>=0?num(r[qi]):0,branch:(bi>=0&&r[bi]!=='')?String(r[bi]).trim():''});
   });
-  dsRows.local=out;active.local=true;
+  dsRows.local=out;active.local=true;scheduleSave();
   $('mmsg').textContent='ใช้ได้ '+out.length+' แถว'+(bad?' · ข้าม '+bad+' แถวที่อ่านวันที่ไม่ได้':'')+' — ถ้ากราฟไม่ถูกต้อง ลองเปลี่ยนคอลัมน์ด้านบน';
   render();
 }
@@ -297,7 +299,7 @@ function render(){
   $('vAdmin').classList.toggle('hide',home);
   $('navBtn').textContent=home?(pwCfg?'🔒 เลือกไฟล์':'เลือกไฟล์'):'← กลับรายงาน';
   $('vAdmin2').classList.toggle('hide',home);
-  $('dl').disabled=!(dsRows.local&&dsRows.local.length);
+  $('dl').disabled=!(dsRows.local&&dsRows.local.length);$('clr').disabled=$('dl').disabled;
   $('goBtn').disabled=!rows.length;
   $('rep').classList.toggle('hide',!(home&&rows.length));
   $('empty').classList.toggle('hide',!(home&&!rows.length));
@@ -376,7 +378,7 @@ function draw(){
   var total=0,best='-',bv=-1,pk='-',pv=-1,pt={};
   c.names.forEach(function(n){var s=0;c.xk.forEach(function(x){var v=c.data[n][x]||0;s+=v;pt[x]=(pt[x]||0)+v});total+=s;if(s>bv){bv=s;best=n}});
   c.xk.forEach(function(x,i){if((pt[x]||0)>pv){pv=pt[x]||0;pk=c.xl[i]}});
-  var u=st.metric==='amt'?' กีบ':' ชิ้น';
+  var u=st.metric==='amt'?' Kip':' ชิ้น';
   $('kpis').innerHTML=[['ยอดรวมที่เลือก',nf.format(total)+u],['อันดับ 1',best],['ช่วงที่สูงสุด',pk+' ('+nf.format(Math.max(pv,0))+')'],['จำนวนช่วงเวลา',c.xk.length]].map(function(k){return '<div class="kpi"><small>'+k[0]+'</small><b>'+esc(k[1])+'</b></div>'}).join('');
   var h='<thead><tr><th>'+(st.mode==='yoy'?'เดือน':'ช่วงเวลา')+'</th>'+c.names.map(function(n){return '<th>'+esc(n)+'</th>'}).join('')+'<th>รวม</th></tr></thead><tbody>';
   var csv=[['ช่วงเวลา'].concat(c.names,['รวม'])];
@@ -445,28 +447,73 @@ $('pwSet').onclick=function(){
   if(a!==b){m.textContent='รหัสผ่านสองช่องไม่ตรงกัน';return}
   makePw(a).then(function(c){
     pwCfg=c;unlocked=true;$('pw1').value='';$('pw2').value='';
-    m.className='msg';m.textContent='ตั้งรหัสผ่านแล้ว กดดาวน์โหลดไฟล์รายงานด้านบนเพื่อเก็บรหัสผ่านนี้ไว้ในไฟล์';updPwUi();
+    m.className='msg';m.textContent='ตั้งรหัสผ่านแล้ว ระบบบันทึกไว้ให้อัตโนมัติ';updPwUi();scheduleSave();
   }).catch(function(){m.textContent='เบราว์เซอร์นี้ตั้งรหัสผ่านไม่ได้ ลองใช้ Chrome, Edge หรือ Firefox'});
 };
-$('pwDel').onclick=function(){pwCfg=null;$('pwMsg').className='msg';$('pwMsg').textContent='ลบรหัสผ่านแล้ว กดดาวน์โหลดไฟล์รายงานเพื่อบันทึกการเปลี่ยนแปลง';updPwUi()};
+$('pwDel').onclick=function(){pwCfg=null;$('pwMsg').className='msg';$('pwMsg').textContent='ลบรหัสผ่านแล้ว ระบบบันทึกไว้ให้อัตโนมัติ';updPwUi();scheduleSave()};
 
-/* ---------- ดาวน์โหลดไฟล์รายงานพร้อมข้อมูลและรหัสผ่าน ---------- */
-$('dl').onclick=function(){
-  var out=dsRows.local;if(!out||!out.length)return;
-  var idx=Object.create(null),its=[],bx=Object.create(null),bl=[];
+/* ---------- การบันทึก ---------- */
+var STORE='rpt:'+location.pathname,fh=null,fhOk=false,tmr=null,started=false;
+function idb(){return new Promise(function(res,rej){try{var q=indexedDB.open('salesReport',1);q.onupgradeneeded=function(){q.result.createObjectStore('kv')};q.onsuccess=function(){res(q.result)};q.onerror=function(){rej(q.error)}}catch(e){rej(e)}})}
+function idbGet(k){return idb().then(function(d){return new Promise(function(res,rej){var r=d.transaction('kv').objectStore('kv').get(k);r.onsuccess=function(){res(r.result)};r.onerror=function(){rej(r.error)}})})}
+function idbSet(k,v){return idb().then(function(d){return new Promise(function(res,rej){var t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=function(){res()};t.onerror=function(){rej(t.error)}})})}
+function snapshot(){
+  var out=dsRows.local||[],idx=Object.create(null),its=[],bx=Object.create(null),bl=[];
   var comp=out.map(function(r){if(!(r.item in idx)){idx[r.item]=its.length;its.push(r.item)}var b=-1;if(r.branch){if(!(r.branch in bx)){bx[r.branch]=bl.length;bl.push(r.branch)}b=bx[r.branch]}return [iso(r.d),idx[r.item],r.amt,r.qty,b]});
-  var json=JSON.stringify({v:1,name:fileName,items:its,branches:bl,rows:comp,pw:pwCfg}).replace(/</g,'\\u003c');
-  var html=SRC.replace(/(<script id="embed" type="application\/json">)[\s\S]*?(<\/script>)/,function(m,a,b){return a+json+b});
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download='รายงานยอดขาย.html';a.click();
-};
-var EMB=null;try{EMB=JSON.parse($('embed').textContent)}catch(e){}
-if(EMB&&EMB.rows&&EMB.rows.length){
-  var _i=EMB.items||[],_b=EMB.branches||[];
-  dsRows.local=EMB.rows.map(function(r){return {d:fromIso(r[0]),item:_i[r[1]]||'(ไม่ระบุ)',amt:r[2],qty:r[3],branch:(r[4]>=0)?(_b[r[4]]||''):''}});
-  active.local=true;fileName=EMB.name||'';
+  return {v:1,at:Date.now(),name:fileName,items:its,branches:bl,rows:comp,pw:pwCfg};
 }
-if(EMB&&EMB.pw)pwCfg=EMB.pw;
-updPwUi();readHash();initBackend();
+function buildHtml(snap){
+  var json=JSON.stringify(snap).replace(/</g,'\\u003c');
+  return SRC.replace(/(<script id="embed" type="application\/json">)[\s\S]*?(<\/script>)/,function(m,a,b){return a+json+b});
+}
+function say(t,err){var m=$('saveMsg');m.className='msg'+(err?' err':'');m.textContent=t}
+function hhmm(){var d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
+function writeFile(snap){return fh.createWritable().then(function(w){return w.write(buildHtml(snap)).then(function(){return w.close()})})}
+function scheduleSave(){clearTimeout(tmr);tmr=setTimeout(doSave,500)}
+function doSave(){
+  var snap=snapshot(),ps=[];
+  ps.push(idbSet(STORE,snap).then(function(){return 'เบราว์เซอร์'}).catch(function(){return null}));
+  if(fhOk)ps.push(writeFile(snap).then(function(){return 'ไฟล์'}).catch(function(){fhOk=false;return null}));
+  Promise.all(ps).then(function(r){
+    var ok=r.filter(Boolean);
+    say(ok.length?'บันทึกแล้ว ('+ok.join(' + ')+') เวลา '+hhmm():'บันทึกอัตโนมัติไม่สำเร็จ (เบราว์เซอร์อาจปิดการเก็บข้อมูลไว้) ใช้ปุ่มดาวน์โหลดแทนได้',!ok.length);
+  });
+}
+$('fsave').onclick=function(){
+  if(!window.showSaveFilePicker){say('เบราว์เซอร์นี้ไม่รองรับการบันทึกทับไฟล์ ใช้ปุ่มดาวน์โหลดแทน หรือเปิดด้วย Chrome / Edge',true);return}
+  var snap=snapshot();
+  var getH=fh?fh.queryPermission({mode:'readwrite'}).then(function(p){return p==='granted'?p:fh.requestPermission({mode:'readwrite'})}).then(function(p){if(p!=='granted')throw new Error('denied');return fh}):Promise.reject();
+  getH.catch(function(){return window.showSaveFilePicker({suggestedName:'รายงานยอดขาย.html',types:[{description:'ไฟล์ HTML',accept:{'text/html':['.html']}}]})})
+    .then(function(h){fh=h;return idbSet('fh:'+STORE,h).catch(function(){})})
+    .then(function(){return writeFile(snap)})
+    .then(function(){fhOk=true;say('บันทึกทับไฟล์แล้ว เวลา '+hhmm()+' จากนี้การแก้ไขจะบันทึกลงไฟล์ให้อัตโนมัติ')})
+    .catch(function(e){if(e&&e.name==='AbortError')return;say('บันทึกทับไฟล์ไม่สำเร็จ: '+(e&&e.message||e),true)});
+};
+$('dl').onclick=function(){
+  var snap=snapshot();if(!snap.rows.length)return;
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buildHtml(snap)],{type:'text/html'}));a.download='รายงานยอดขาย.html';a.click();
+};
+$('clr').onclick=function(){
+  if(!confirm('ลบข้อมูลยอดขายที่บันทึกไว้ทั้งหมด? (รหัสผ่านยังอยู่)'))return;
+  delete dsRows.local;delete active.local;fileName='';$('pend').classList.add('hide');render();scheduleSave();
+};
+
+/* ---------- โหลดข้อมูลที่บันทึกไว้ตอนเปิดไฟล์ ---------- */
+var EMB=null;try{EMB=JSON.parse($('embed').textContent)}catch(e){}
+function applySnap(E){
+  if(E&&E.rows&&E.rows.length){
+    var _i=E.items||[],_b=E.branches||[];
+    dsRows.local=E.rows.map(function(r){return {d:fromIso(r[0]),item:_i[r[1]]||'(ไม่ระบุ)',amt:r[2],qty:r[3],branch:(r[4]>=0)?(_b[r[4]]||''):''}});
+    active.local=true;fileName=E.name||'';
+  }
+  pwCfg=(E&&E.pw)||null;
+}
+function start(E){if(started)return;started=true;applySnap(E);updPwUi();readHash();initBackend()}
+setTimeout(function(){start(EMB)},1500);
+Promise.all([idbGet(STORE).catch(function(){return null}),idbGet('fh:'+STORE).catch(function(){return null})]).then(function(r){
+  var L=r[0];if(r[1])fh=r[1];
+  start(L&&(!EMB||(L.at||0)>(EMB.at||0))?L:EMB);
+});
 })();
 </script>
 </body>
