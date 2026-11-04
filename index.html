@@ -116,6 +116,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
 </header>
 <main>
 <p class="msg" id="dbmsg"></p>
+<div class="card hide" id="shareBanner" style="border-width:2px"><div id="sbText"></div><p class="msg"><button class="p" id="bdl">ดาวน์โหลดไฟล์ที่พร้อมส่ง</button></p></div>
 
 
 <div class="card hide" id="vAdmin">
@@ -145,7 +146,8 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
     <p class="msg" style="margin-top:0">ระบบบันทึกข้อมูลและรหัสผ่านไว้ในเบราว์เซอร์นี้ให้อัตโนมัติ เปิดไฟล์นี้อีกครั้งด้วยเบราว์เซอร์เดิมก็เห็นรายงานเดิม</p>
     <div class="row" style="margin-top:10px"><button class="p" id="fsave">บันทึกทับไฟล์นี้</button><button id="dl" disabled>ดาวน์โหลดไฟล์รายงาน (พร้อมข้อมูล)</button><button id="clr" class="d" disabled>ล้างข้อมูล</button></div>
     <p class="msg" id="saveMsg"></p>
-    <p class="msg">“บันทึกทับไฟล์นี้” ใช้ได้ใน Chrome / Edge บนคอมพิวเตอร์: เลือกไฟล์รายงานตัวนี้เมื่อเบราว์เซอร์ถาม ไฟล์จะมีข้อมูลและรหัสผ่านฝังอยู่ ส่งให้คนอื่นเปิดดูได้ และครั้งต่อไปจะบันทึกลงไฟล์ให้เองหลังกดอนุญาตหนึ่งครั้ง ส่วนการบันทึกในเบราว์เซอร์ใช้ได้เฉพาะเครื่องนี้</p></div>
+    <p class="msg"><b>สำคัญ:</b> คนอื่นจะเห็นข้อมูลก็ต่อเมื่อเปิดไฟล์ที่ฝังข้อมูลไว้แล้ว คือไฟล์ที่ได้จากปุ่ม “ดาวน์โหลดไฟล์รายงาน” หรือ “บันทึกทับไฟล์นี้” เท่านั้น ไฟล์ต้นฉบับที่ยังไม่เคยบันทึกลงไฟล์จะเปิดมาเปล่า ๆ แม้บนเครื่องคุณจะเห็นข้อมูล (เพราะเก็บอยู่ในเบราว์เซอร์เครื่องคุณ)</p>
+    <p class="msg">“บันทึกทับไฟล์นี้” ใช้ได้ใน Chrome / Edge บนคอมพิวเตอร์: เลือกไฟล์รายงานตัวนี้เมื่อเบราว์เซอร์ถาม ครั้งต่อไปจะบันทึกลงไฟล์ให้เองหลังกดอนุญาตหนึ่งครั้ง</p></div>
   <div class="card"><h2>รหัสผ่านเข้าหน้าเลือกไฟล์</h2>
     <p class="msg" id="pwState" style="margin-top:0"></p>
     <div class="row"><label class="f">รหัสผ่านใหม่<input type="password" id="pw1" autocomplete="new-password"></label><label class="f">ยืนยันรหัสผ่าน<input type="password" id="pw2" autocomplete="new-password"></label><button class="p" id="pwSet">ตั้งรหัสผ่าน</button><button id="pwDel" class="d hide">ลบรหัสผ่าน</button></div>
@@ -299,7 +301,7 @@ function render(){
   $('vAdmin').classList.toggle('hide',home);
   $('navBtn').textContent=home?(pwCfg?'🔒 เลือกไฟล์':'เลือกไฟล์'):'← กลับรายงาน';
   $('vAdmin2').classList.toggle('hide',home);
-  $('dl').disabled=!(dsRows.local&&dsRows.local.length);$('clr').disabled=$('dl').disabled;
+  $('dl').disabled=!(dsRows.local&&dsRows.local.length);$('clr').disabled=$('dl').disabled;refreshBanner();
   $('goBtn').disabled=!rows.length;
   $('rep').classList.toggle('hide',!(home&&rows.length));
   $('empty').classList.toggle('hide',!(home&&!rows.length));
@@ -378,7 +380,7 @@ function draw(){
   var total=0,best='-',bv=-1,pk='-',pv=-1,pt={};
   c.names.forEach(function(n){var s=0;c.xk.forEach(function(x){var v=c.data[n][x]||0;s+=v;pt[x]=(pt[x]||0)+v});total+=s;if(s>bv){bv=s;best=n}});
   c.xk.forEach(function(x,i){if((pt[x]||0)>pv){pv=pt[x]||0;pk=c.xl[i]}});
-  var u=st.metric==='amt'?' Kip':' ชิ้น';
+  var u=st.metric==='amt'?' กีบ':' ชิ้น';
   $('kpis').innerHTML=[['ยอดรวมที่เลือก',nf.format(total)+u],['อันดับ 1',best],['ช่วงที่สูงสุด',pk+' ('+nf.format(Math.max(pv,0))+')'],['จำนวนช่วงเวลา',c.xk.length]].map(function(k){return '<div class="kpi"><small>'+k[0]+'</small><b>'+esc(k[1])+'</b></div>'}).join('');
   var h='<thead><tr><th>'+(st.mode==='yoy'?'เดือน':'ช่วงเวลา')+'</th>'+c.names.map(function(n){return '<th>'+esc(n)+'</th>'}).join('')+'<th>รวม</th></tr></thead><tbody>';
   var csv=[['ช่วงเวลา'].concat(c.names,['รวม'])];
@@ -453,7 +455,7 @@ $('pwSet').onclick=function(){
 $('pwDel').onclick=function(){pwCfg=null;$('pwMsg').className='msg';$('pwMsg').textContent='ลบรหัสผ่านแล้ว ระบบบันทึกไว้ให้อัตโนมัติ';updPwUi();scheduleSave()};
 
 /* ---------- การบันทึก ---------- */
-var STORE='rpt:'+location.pathname,fh=null,fhOk=false,tmr=null,started=false;
+var STORE='rpt:'+location.pathname,fh=null,fhOk=false,tmr=null,started=false,dirty=false,dlDone=false;
 function idb(){return new Promise(function(res,rej){try{var q=indexedDB.open('salesReport',1);q.onupgradeneeded=function(){q.result.createObjectStore('kv')};q.onsuccess=function(){res(q.result)};q.onerror=function(){rej(q.error)}}catch(e){rej(e)}})}
 function idbGet(k){return idb().then(function(d){return new Promise(function(res,rej){var r=d.transaction('kv').objectStore('kv').get(k);r.onsuccess=function(){res(r.result)};r.onerror=function(){rej(r.error)}})})}
 function idbSet(k,v){return idb().then(function(d){return new Promise(function(res,rej){var t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=function(){res()};t.onerror=function(){rej(t.error)}})})}
@@ -469,11 +471,20 @@ function buildHtml(snap){
 function say(t,err){var m=$('saveMsg');m.className='msg'+(err?' err':'');m.textContent=t}
 function hhmm(){var d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
 function writeFile(snap){return fh.createWritable().then(function(w){return w.write(buildHtml(snap)).then(function(){return w.close()})})}
-function scheduleSave(){clearTimeout(tmr);tmr=setTimeout(doSave,500)}
+function refreshBanner(){
+  var has=!!(dsRows.local&&dsRows.local.length),b=$('shareBanner'),mode=(dirty&&has)?'warn':(dlDone?'ok':'');
+  b.classList.toggle('hide',!mode);if(!mode)return;
+  b.style.borderColor=mode==='warn'?'var(--bad)':'var(--acc)';
+  $('sbText').textContent=mode==='warn'
+    ?'⚠ ข้อมูลชุดนี้ยังไม่ได้อยู่ในไฟล์ เก็บอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น คนอื่นที่เปิดไฟล์หรือลิงก์จะไม่เห็นข้อมูล ก่อนส่งให้ใคร ให้กดดาวน์โหลดไฟล์ที่พร้อมส่ง แล้วส่งไฟล์ที่ได้ (ไม่ใช่ไฟล์เดิม)'
+    :'✔ ดาวน์โหลดแล้ว ส่งไฟล์ “รายงานยอดขาย.html” ที่เพิ่งได้ไปให้คนอื่น หรืออัปโหลดขึ้นเว็บโดยตั้งชื่อ index.html (ไฟล์เดิมที่เปิดอยู่นี้ยังไม่มีข้อมูลฝังอยู่)';
+  $('bdl').classList.toggle('hide',mode!=='warn');
+}
+function scheduleSave(){if(!fhOk){dirty=true;dlDone=false}refreshBanner();clearTimeout(tmr);tmr=setTimeout(doSave,500)}
 function doSave(){
   var snap=snapshot(),ps=[];
   ps.push(idbSet(STORE,snap).then(function(){return 'เบราว์เซอร์'}).catch(function(){return null}));
-  if(fhOk)ps.push(writeFile(snap).then(function(){return 'ไฟล์'}).catch(function(){fhOk=false;return null}));
+  if(fhOk)ps.push(writeFile(snap).then(function(){dirty=false;refreshBanner();return 'ไฟล์'}).catch(function(){fhOk=false;return null}));
   Promise.all(ps).then(function(r){
     var ok=r.filter(Boolean);
     say(ok.length?'บันทึกแล้ว ('+ok.join(' + ')+') เวลา '+hhmm():'บันทึกอัตโนมัติไม่สำเร็จ (เบราว์เซอร์อาจปิดการเก็บข้อมูลไว้) ใช้ปุ่มดาวน์โหลดแทนได้',!ok.length);
@@ -486,13 +497,15 @@ $('fsave').onclick=function(){
   getH.catch(function(){return window.showSaveFilePicker({suggestedName:'รายงานยอดขาย.html',types:[{description:'ไฟล์ HTML',accept:{'text/html':['.html']}}]})})
     .then(function(h){fh=h;return idbSet('fh:'+STORE,h).catch(function(){})})
     .then(function(){return writeFile(snap)})
-    .then(function(){fhOk=true;say('บันทึกทับไฟล์แล้ว เวลา '+hhmm()+' จากนี้การแก้ไขจะบันทึกลงไฟล์ให้อัตโนมัติ')})
+    .then(function(){fhOk=true;dirty=false;dlDone=false;refreshBanner();say('บันทึกทับไฟล์แล้ว เวลา '+hhmm()+' จากนี้การแก้ไขจะบันทึกลงไฟล์ให้อัตโนมัติ')})
     .catch(function(e){if(e&&e.name==='AbortError')return;say('บันทึกทับไฟล์ไม่สำเร็จ: '+(e&&e.message||e),true)});
 };
-$('dl').onclick=function(){
+function doDownload(){
   var snap=snapshot();if(!snap.rows.length)return;
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buildHtml(snap)],{type:'text/html'}));a.download='รายงานยอดขาย.html';a.click();
-};
+  dirty=false;dlDone=true;refreshBanner();
+}
+$('dl').onclick=doDownload;$('bdl').onclick=doDownload;
 $('clr').onclick=function(){
   if(!confirm('ลบข้อมูลยอดขายที่บันทึกไว้ทั้งหมด? (รหัสผ่านยังอยู่)'))return;
   delete dsRows.local;delete active.local;fileName='';$('pend').classList.add('hide');render();scheduleSave();
@@ -508,11 +521,13 @@ function applySnap(E){
   }
   pwCfg=(E&&E.pw)||null;
 }
-function start(E){if(started)return;started=true;applySnap(E);updPwUi();readHash();initBackend()}
+function start(E){if(started)return;started=true;applySnap(E);dirty=!!(E&&E!==EMB&&E.rows&&E.rows.length);updPwUi();readHash();initBackend()}
 setTimeout(function(){start(EMB)},1500);
 Promise.all([idbGet(STORE).catch(function(){return null}),idbGet('fh:'+STORE).catch(function(){return null})]).then(function(r){
   var L=r[0];if(r[1])fh=r[1];
-  start(L&&(!EMB||(L.at||0)>(EMB.at||0))?L:EMB);
+  var useL=L&&(!EMB||(L.at||0)>(EMB.at||0));
+  if(useL&&EMB&&JSON.stringify([L.rows,L.pw,L.name])===JSON.stringify([EMB.rows,EMB.pw,EMB.name]))useL=false;
+  start(useL?L:EMB);
 });
 })();
 </script>
