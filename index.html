@@ -115,6 +115,15 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
 .tg:hover:not(:disabled){background:var(--accbg)}
 .ar{display:inline-block;transition:transform .15s;color:var(--mute);font-size:12px}
 .bg.open .ar{transform:rotate(90deg)}
+#tb th:first-child,#tb td:first-child{white-space:normal;min-width:170px;max-width:240px;z-index:1}
+#tb thead th:first-child{z-index:2}
+.lgh{font-size:12px;color:var(--mute);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:2px 10px;max-height:156px;overflow:auto;margin-top:6px}
+.lgi{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:4px 6px;border-radius:8px;text-align:left;font-size:12.5px;min-width:0;color:var(--ink)}
+.lgi:hover:not(:disabled){background:var(--accbg)}
+.lgi span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lgi i{flex:none;width:12px;height:12px;border-radius:3px}
+.lgi.off{opacity:.4;text-decoration:line-through}
 </style>
 </head>
 <body>
@@ -193,7 +202,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
     </div>
   </div>
   <div class="kpis card" id="kpis"></div>
-  <div class="card"><div class="cv" id="cvw"><canvas id="cv"></canvas></div></div>
+  <div class="card"><div class="cv" id="cvw"><canvas id="cv"></canvas></div><div class="lgh" id="lgh"></div><div class="lg" id="lg"></div></div>
   <div class="card"><div class="tw"><table id="tb"></table></div>
     <p class="msg"><button id="csv">ดาวน์โหลดตารางเป็น CSV</button></p></div>
 </div>
@@ -208,7 +217,7 @@ var SRC='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
 var pwCfg=null,unlocked=false,okCrypto=!!(window.crypto&&crypto.subtle);
 var COLORS=['#3b5bfd','#ff7a59','#12b886','#f5b301','#a855f7','#06b6d4','#ef476f','#84cc16','#64748b','#0ea5e9'];
 var MTH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-var CHUNK=2000,branches=[],bsel={},hasBr=false,colorOf={},iq='',bq='',psel={},bitems={},dimSet=false,openB=null;
+var CHUNK=2000,branches=[],bsel={},hasBr=false,colorOf={},iq='',bq='',psel={},bitems={},dimSet=false,openB=null,hid={},lgNames=[];
 var $=function(i){return document.getElementById(i)};
 var nf=new Intl.NumberFormat('th-TH',{maximumFractionDigits:2});
 var db=null,assets=null,isAdmin=false;
@@ -402,6 +411,16 @@ $('bnone').onclick=function(){if(!bq)bsel={};else branches.forEach(function(b){i
 $('isearch').oninput=function(){iq=this.value.trim().toLowerCase();renderChips()};
 $('bsearch').oninput=function(){bq=this.value.trim().toLowerCase();renderChips()};
 
+function buildLegend(names){
+  lgNames=names;
+  $('lgh').textContent=names.length?names.length+' รายการ · กดที่ชื่อเพื่อซ่อน/แสดงเส้นในกราฟ':'';
+  $('lg').innerHTML=names.map(function(n,i){return '<button class="lgi'+(hid[n]?' off':'')+'" data-i="'+i+'" title="'+esc(n)+'"><i style="background:'+(colorOf[n]||'#999')+'"></i><span>'+esc(n)+'</span></button>'}).join('');
+}
+$('lg').onclick=function(e){
+  var b=e.target.closest('.lgi');if(!b||!chart)return;
+  var i=+b.dataset.i,n=lgNames[i];hid[n]=!hid[n];b.classList.toggle('off',!!hid[n]);
+  if(chart.setDatasetVisibility){chart.setDatasetVisibility(i,!hid[n]);chart.update()}
+};
 function key(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return st.gran==='day'?y+'-'+m+'-'+dd:st.gran==='month'?y+'-'+m:''+y}
 function label(k){var p=k.split('-');if(p.length===3)return +p[2]+' '+MTH[p[1]-1]+' '+String(yr(+p[0])).slice(-2);if(p.length===2)return MTH[p[1]-1]+' '+yr(+p[0]);return String(yr(+p[0]))}
 function compute(){
@@ -420,24 +439,25 @@ function draw(){
   var c=compute(),isBar=st.ctype!=='line',cs=getComputedStyle(document.documentElement);
   var ink=cs.getPropertyValue('--ink').trim(),grid=cs.getPropertyValue('--grid').trim();
   colorOf={};var ds=c.names.map(function(n,i){var col=COLORS[i%COLORS.length];colorOf[n]=col;
-    return {label:n,data:c.xk.map(function(x){return c.data[n][x]==null?(isBar?0:null):c.data[n][x]}),borderColor:col,backgroundColor:isBar?col:col+'33',borderWidth:2,tension:.25,pointRadius:c.xk.length>40?0:3,spanGaps:true}});
+    return {label:n,hidden:!!hid[n],data:c.xk.map(function(x){return c.data[n][x]==null?(isBar?0:null):c.data[n][x]}),borderColor:col,backgroundColor:isBar?col:col+'33',borderWidth:2,tension:.25,pointRadius:c.xk.length>40?0:3,spanGaps:true}});
   if(chart)chart.destroy();
   var hz=st.ctype==='barh';
   $('cvw').style.height=hz?Math.min(2400,Math.max(380,c.xk.length*(isBar?Math.max(1,c.names.length)*16+10:22)+80))+'px':'380px';
   chart=new Chart($('cv'),{type:isBar?'bar':'line',data:{labels:c.xl,datasets:ds},options:{indexAxis:hz?'y':'x',responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false,axis:hz?'y':'x'},
-    plugins:{legend:{labels:{color:ink,font:{family:'Noto Sans Thai'}}},tooltip:{callbacks:{label:function(x){return x.dataset.label+': '+nf.format((hz?x.parsed.x:x.parsed.y)||0)}}}},
+    plugins:{legend:{display:false},tooltip:{enabled:false}},
     scales:hz?{y:{ticks:{color:ink,autoSkip:false},grid:{color:grid}},x:{beginAtZero:true,ticks:{color:ink,callback:function(v){return nf.format(v)}},grid:{color:grid}}}:{x:{ticks:{color:ink,maxRotation:60,autoSkip:true},grid:{color:grid}},y:{beginAtZero:true,ticks:{color:ink,callback:function(v){return nf.format(v)}},grid:{color:grid}}}}});
-  paintDots();
+  paintDots();buildLegend(c.names);
   var total=0,best='-',bv=-1,pk='-',pv=-1,pt={};
   c.names.forEach(function(n){var s=0;c.xk.forEach(function(x){var v=c.data[n][x]||0;s+=v;pt[x]=(pt[x]||0)+v});total+=s;if(s>bv){bv=s;best=n}});
   c.xk.forEach(function(x,i){if((pt[x]||0)>pv){pv=pt[x]||0;pk=c.xl[i]}});
-  var u=st.metric==='amt'?' บาท':' ชิ้น';
+  var u=st.metric==='amt'?' กีบ':' ชิ้น';
   $('kpis').innerHTML=[['ยอดรวมที่เลือก',nf.format(total)+u],['อันดับ 1',best],['ช่วงที่สูงสุด',pk+' ('+nf.format(Math.max(pv,0))+')'],['จำนวนช่วงเวลา',c.xk.length]].map(function(k){return '<div class="kpi"><small>'+k[0]+'</small><b>'+esc(k[1])+'</b></div>'}).join('');
-  var h='<thead><tr><th>'+(st.mode==='yoy'?'เดือน':'ช่วงเวลา')+'</th>'+c.names.map(function(n){return '<th>'+esc(n)+'</th>'}).join('')+'<th>รวม</th></tr></thead><tbody>';
-  var csv=[['ช่วงเวลา'].concat(c.names,['รวม'])];
-  c.xk.forEach(function(x,i){var s=0,line=[c.xl[i]];
-    var td=c.names.map(function(n){var v=c.data[n][x]||0;s+=v;line.push(v);return '<td>'+(v?nf.format(v):'-')+'</td>'}).join('');
-    line.push(s);csv.push(line);h+='<tr><td>'+esc(c.xl[i])+'</td>'+td+'<td><b>'+nf.format(s)+'</b></td></tr>'});
+  var corner=(hasBr&&st.dim==='branch')?'สาขา':((hasBr&&st.dim==='both')?'สาขา · รายการ':'รายการ');
+  var h='<thead><tr><th>'+corner+'</th>'+c.xl.map(function(l){return '<th>'+esc(l)+'</th>'}).join('')+'<th>รวม</th></tr></thead><tbody>';
+  var csv=[[corner].concat(c.xl,['รวม'])];
+  c.names.forEach(function(n){var s=0,line=[n];
+    var td=c.xk.map(function(x){var v=c.data[n][x]||0;s+=v;line.push(v);return '<td>'+(v?nf.format(v):'-')+'</td>'}).join('');
+    line.push(s);csv.push(line);h+='<tr><td>'+esc(n)+'</td>'+td+'<td><b>'+nf.format(s)+'</b></td></tr>'});
   $('tb').innerHTML=c.names.length?h+'</tbody>':'<tbody><tr><td>เลือกรายการอย่างน้อย 1 รายการ</td></tr></tbody>';lastTable=csv;
 }
 function seg(id,k){$(id).onclick=function(e){var b=e.target.closest('button');if(!b)return;[].forEach.call($(id).children,function(x){x.classList.toggle('on',x===b)});st[k]=b.dataset.v;if(k==='mode')$('gran').style.opacity=st.mode==='yoy'?.4:1;draw()}}
