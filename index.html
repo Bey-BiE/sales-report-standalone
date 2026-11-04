@@ -106,6 +106,15 @@ tbody tr:hover td{background:var(--accbg)}
 input[type=password]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
 .modal{position:fixed;inset:0;background:rgba(10,15,35,.55);display:grid;place-items:center;z-index:50;padding:16px}
 .modal .card{width:min(380px,100%);margin:0}
+.chips.grouped{display:block;max-height:380px}
+.bg{margin-bottom:10px}
+.bh{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;padding:4px 2px;position:sticky;top:0;background:var(--bg);z-index:1}
+.bt{display:flex;align-items:center;gap:8px}
+.chips.in{max-height:none;overflow:visible;padding:2px 0 0}
+.tg{border:0;background:transparent;font:inherit;font-weight:600;display:flex;align-items:center;gap:8px;padding:3px 4px;color:var(--ink);border-radius:8px}
+.tg:hover:not(:disabled){background:var(--accbg)}
+.ar{display:inline-block;transition:transform .15s;color:var(--mute);font-size:12px}
+.bg.open .ar{transform:rotate(90deg)}
 </style>
 </head>
 <body>
@@ -116,7 +125,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
 </header>
 <main>
 <p class="msg" id="dbmsg"></p>
-<div class="card hide" id="shareBanner" style="border-width:2px"><div id="sbText"></div><p class="msg"><button class="p" id="bdl">ดาวน์โหลดไฟล์ที่พร้อมส่ง</button></p></div>
+<div class="card hide" id="shareBanner" style="border-width:2px"><div id="sbText"></div><p class="msg"><button class="p" id="bdl">ดาวน์โหลดไฟล์ที่พร้อมส่ง</button> <button id="bsave">บันทึกทับไฟล์นี้</button></p></div>
 
 
 <div class="card hide" id="vAdmin">
@@ -137,6 +146,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
     </div>
     <div id="mmsg" class="msg"></div>
     <p class="msg"><button class="p" id="goBtn" disabled>ดูรายงาน →</button></p>
+    <label class="msg" id="autoFileLbl" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="autoFile" checked> บันทึกทับไฟล์นี้ให้อัตโนมัติเมื่อกด “ดูรายงาน” (Chrome / Edge: ครั้งแรกเลือกไฟล์รายงานตัวนี้ ครั้งต่อไปจะบันทึกให้เอง)</label>
 
   </div>
 </div>
@@ -165,7 +175,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
     <div class="row">
       <div class="f">ดูแบบ<div class="seg" id="gran"><button data-v="day">รายวัน</button><button data-v="month" class="on">รายเดือน</button><button data-v="year">รายปี</button></div></div>
       <div class="f">เปรียบเทียบ<div class="seg" id="mode"><button data-v="time" class="on">ตามช่วงเวลา</button><button data-v="yoy">ซ้อนปีเทียบปี</button></div></div>
-      <div class="f hide" id="dimf">แยกกราฟตาม<div class="seg" id="dim"><button data-v="item" class="on">รายการ</button><button data-v="branch">สาขา</button></div></div>
+      <div class="f hide" id="dimf">แยกกราฟตาม<div class="seg" id="dim"><button data-v="item" class="on">รายการ</button><button data-v="branch">สาขา</button><button data-v="both">สาขา · รายการ</button></div></div>
       <div class="f">ค่าที่ดู<div class="seg" id="metric"><button data-v="amt" class="on">ยอดเงิน</button><button data-v="qty">จำนวน</button></div></div>
       <div class="f">กราฟ<div class="seg" id="ctype"><button data-v="line" class="on">เส้น</button><button data-v="bar">แท่งแนวตั้ง</button><button data-v="barh">แท่งแนวนอน</button></div></div>
       <label class="f">ตั้งแต่<input type="date" id="from"></label>
@@ -174,7 +184,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
       <label class="f" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="sum"> รวมเป็นเส้นเดียว</label>
     </div>
     <div class="gwrap">
-      <div class="gp" id="igrp"><div class="gh"><span class="gt">รายการสินค้า <em class="cnt" id="icnt"></em></span><span><button id="all" class="ghost">เลือกทั้งหมด</button><button id="none" class="ghost">ล้าง</button></span></div>
+      <div class="gp" id="igrp"><div class="gh"><span class="gt"><span id="igt">รายการสินค้า</span> <em class="cnt" id="icnt"></em></span><span><button id="all" class="ghost">เลือกทั้งหมด</button><button id="none" class="ghost">ล้าง</button></span></div>
         <input type="text" id="isearch" class="gs hide" placeholder="ค้นหารายการ…" aria-label="ค้นหารายการสินค้า">
         <div class="chips" id="chips"></div></div>
       <div class="gp hide" id="bgrp"><div class="gh"><span class="gt">สาขา <em class="cnt" id="bcnt"></em></span><span><button id="ball" class="ghost">ทุกสาขา</button><button id="bnone" class="ghost">ล้าง</button></span></div>
@@ -198,7 +208,7 @@ var SRC='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
 var pwCfg=null,unlocked=false,okCrypto=!!(window.crypto&&crypto.subtle);
 var COLORS=['#3b5bfd','#ff7a59','#12b886','#f5b301','#a855f7','#06b6d4','#ef476f','#84cc16','#64748b','#0ea5e9'];
 var MTH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-var CHUNK=2000,branches=[],bsel={},hasBr=false,colorOf={},iq='',bq='';
+var CHUNK=2000,branches=[],bsel={},hasBr=false,colorOf={},iq='',bq='',psel={},bitems={},dimSet=false,openB=null;
 var $=function(i){return document.getElementById(i)};
 var nf=new Intl.NumberFormat('th-TH',{maximumFractionDigits:2});
 var db=null,assets=null,isAdmin=false;
@@ -318,7 +328,14 @@ function render(){
   var bc={};branches.forEach(function(b){if(bsel[b])bc[b]=1});
   if(!Object.keys(bc).length)branches.forEach(function(b){bc[b]=1});
   bsel=bc;
-  $('bgrp').classList.toggle('hide',!hasBr);$('dimf').classList.toggle('hide',!hasBr);
+  $('bgrp').classList.add('hide');$('dimf').classList.toggle('hide',!hasBr);
+  var NOB='(ไม่ระบุสาขา)',pmap={};
+  rows.forEach(function(r){var b=r.branch||NOB;var m=pmap[b]||(pmap[b]={});m[r.item]=(m[r.item]||0)+r.amt});
+  bitems={};branches.forEach(function(b){var m=pmap[b]||{};bitems[b]=Object.keys(m).sort(function(x,y){return m[y]-m[x]})});
+  var vp={};branches.forEach(function(b){bitems[b].forEach(function(i){if(psel[pk(b,i)])vp[pk(b,i)]=1})});
+  if(!Object.keys(vp).length){var top5={};items.slice(0,5).forEach(function(i){top5[i]=1});branches.forEach(function(b){bitems[b].forEach(function(i){if(top5[i])vp[pk(b,i)]=1})})}
+  psel=vp;
+  if(hasBr&&!dimSet&&st.dim!=='both'){st.dim='both';[].forEach.call($('dim').children,function(x){x.classList.toggle('on',x.dataset.v==='both')})}
   var t=rows.map(function(r){return +r.d}),mn=iso(new Date(Math.min.apply(null,t))),mx=iso(new Date(Math.max.apply(null,t))),rk=mn+'|'+mx;
   if(rk!==rangeKey){rangeKey=rk;$('from').value=mn;$('to').value=mx}
   renderChips();draw();
@@ -326,24 +343,58 @@ function render(){
 function yr(y){return $('be').checked?y+543:y}
 function mt(s,q){return !q||String(s).toLowerCase().indexOf(q)>=0}
 function chipHtml(name,on,attr,i){return '<span class="chip'+(on?' on':'')+'" tabindex="0" role="checkbox" aria-checked="'+(!!on)+'" title="'+esc(name)+'" '+attr+'="'+i+'"><i></i><span>'+esc(name)+'</span></span>'}
+function pk(b,i){return b+'\u0001'+i}
 function renderChips(){
-  var bh=branches.map(function(b,i){return mt(b,bq)?chipHtml(b,bsel[b],'data-b',i):''}).join('');
-  var ih=items.map(function(it,i){return mt(it,iq)?chipHtml(it,sel[it],'data-i',i):''}).join('');
-  $('bchips').innerHTML=bh||'<span class="none">ไม่พบสาขา</span>';
+  $('igt').textContent=hasBr?'สาขา และรายการสินค้า':'รายการสินค้า';
+  $('chips').classList.toggle('grouped',hasBr);
+  var ih,total=0,on=0;
+  if(hasBr){
+    if(openB!==''&&branches.indexOf(openB)<0)openB=branches[0];
+    var iidx={};items.forEach(function(x,k){iidx[x]=k});
+    ih=branches.map(function(b,bi){
+      var its=bitems[b].filter(function(i){return mt(i,iq)||mt(b,iq)});
+      var n=0;bitems[b].forEach(function(i){total++;if(psel[pk(b,i)]){n++;on++}});
+      if(!its.length)return '';
+      var open=iq?true:(b===openB);
+      return '<div class="bg'+(open?' open':'')+'"><div class="bh"><button class="tg" data-tg="'+bi+'" aria-expanded="'+open+'"><span class="ar">▸</span><span>'+esc(b)+'</span><em class="cnt">'+n+'/'+bitems[b].length+'</em></button><span><button class="ghost" data-bb="'+bi+'" data-act="all">ทั้งสาขา</button><button class="ghost" data-bb="'+bi+'" data-act="none">ล้าง</button></span></div>'+
+        (open?'<div class="chips in">'+its.map(function(i){return chipHtml(i,psel[pk(b,i)],'data-p',bi+'|'+iidx[i])}).join('')+'</div>':'')+'</div>';
+    }).join('');
+  }else{
+    ih=items.map(function(it,i){return mt(it,iq)?chipHtml(it,sel[it],'data-i',i):''}).join('');
+    total=items.length;on=items.filter(function(k){return sel[k]}).length;
+  }
   $('chips').innerHTML=ih||'<span class="none">ไม่พบรายการ</span>';
-  $('isearch').classList.toggle('hide',items.length<=6);$('bsearch').classList.toggle('hide',branches.length<=6);
-  $('icnt').textContent=items.filter(function(k){return sel[k]}).length+'/'+items.length;
-  $('bcnt').textContent=branches.filter(function(k){return bsel[k]}).length+'/'+branches.length;
+  $('isearch').classList.toggle('hide',total<=6);
+  $('icnt').textContent=on+'/'+total;
   paintDots();
 }
 function paintDots(){
-  [].forEach.call($('chips').querySelectorAll('.chip'),function(c){var k=items[+c.dataset.i];c.firstChild.style.background=(sel[k]&&colorOf[k])?colorOf[k]:''});
-  [].forEach.call($('bchips').querySelectorAll('.chip'),function(c){var k=branches[+c.dataset.b];c.firstChild.style.background=(bsel[k]&&colorOf[k])?colorOf[k]:''});
+  [].forEach.call($('chips').querySelectorAll('.chip'),function(c){
+    var k,on;
+    if(c.dataset.p!=null){var p=c.dataset.p.split('|'),b=branches[+p[0]],it=items[+p[1]];on=psel[pk(b,it)];k=st.dim==='both'?b+' · '+it:(st.dim==='branch'?b:it)}
+    else{k=items[+c.dataset.i];on=sel[k]}
+    c.firstChild.style.background=(on&&colorOf[k])?colorOf[k]:'';
+  });
 }
-$('chips').onclick=function(e){var c=e.target.closest('.chip');if(!c)return;var it=items[+c.dataset.i];sel[it]=sel[it]?0:1;renderChips();draw()};
-$('chips').onkeydown=function(e){if(e.key==='Enter'||e.key===' '){var c=e.target.closest('.chip');if(c){e.preventDefault();var i=+c.dataset.i;c.click();var n=$('chips').querySelector('[data-i="'+i+'"]');n&&n.focus()}}};
-$('all').onclick=function(){items.forEach(function(i){if(mt(i,iq))sel[i]=1});renderChips();draw()};
-$('none').onclick=function(){if(!iq)sel={};else items.forEach(function(i){if(mt(i,iq))sel[i]=0});renderChips();draw()};
+$('chips').onclick=function(e){
+  var tg=e.target.closest('[data-tg]');
+  if(tg){var tb=branches[+tg.dataset.tg];openB=(openB===tb&&!iq)?'':tb;renderChips();var nb=$('chips').querySelector('[data-tg="'+tg.dataset.tg+'"]');nb&&nb.focus();return}
+  var bb=e.target.closest('[data-bb]');
+  if(bb){var b=branches[+bb.dataset.bb],set=bb.dataset.act==='all'?1:0;bitems[b].forEach(function(i){if(mt(i,iq)||mt(b,iq))psel[pk(b,i)]=set});renderChips();draw();return}
+  var c=e.target.closest('.chip');if(!c)return;
+  if(c.dataset.p!=null){var p=c.dataset.p.split('|'),k=pk(branches[+p[0]],items[+p[1]]);psel[k]=psel[k]?0:1;renderChips();draw();return}
+  var it=items[+c.dataset.i];sel[it]=sel[it]?0:1;renderChips();draw();
+};
+$('chips').onkeydown=function(e){
+  if(e.key==='Enter'||e.key===' '){var c=e.target.closest('.chip');if(c){e.preventDefault();var q=c.dataset.p!=null?'[data-p="'+c.dataset.p+'"]':'[data-i="'+c.dataset.i+'"]';c.click();var n=$('chips').querySelector(q);n&&n.focus()}}
+};
+function eachPair(fn){branches.forEach(function(b){bitems[b].forEach(function(i){if(mt(i,iq)||mt(b,iq))fn(b,i)})})}
+$('all').onclick=function(){if(hasBr)eachPair(function(b,i){psel[pk(b,i)]=1});else items.forEach(function(i){if(mt(i,iq))sel[i]=1});renderChips();draw()};
+$('none').onclick=function(){
+  if(hasBr){if(!iq)psel={};else eachPair(function(b,i){psel[pk(b,i)]=0})}
+  else{if(!iq)sel={};else items.forEach(function(i){if(mt(i,iq))sel[i]=0})}
+  renderChips();draw();
+};
 $('bchips').onclick=function(e){var c=e.target.closest('.chip');if(!c)return;var b=branches[+c.dataset.b];bsel[b]=bsel[b]?0:1;renderChips();draw()};
 $('bchips').onkeydown=function(e){if(e.key==='Enter'||e.key===' '){var c=e.target.closest('.chip');if(c){e.preventDefault();var i=+c.dataset.b;c.click();var n=$('bchips').querySelector('[data-b="'+i+'"]');n&&n.focus()}}};
 $('ball').onclick=function(){branches.forEach(function(b){if(mt(b,bq))bsel[b]=1});renderChips();draw()};
@@ -357,8 +408,8 @@ function compute(){
   var f=$('from').value,t=$('to').value,m=st.metric,sum=$('sum').checked,data={},xs={};
   rows.forEach(function(r){
     var s=iso(r.d),brn=r.branch||'(ไม่ระบุสาขา)';
-    if((f&&s<f)||(t&&s>t)||!sel[r.item]||(hasBr&&!bsel[brn]))return;
-    var name=sum?'รวมที่เลือก':(st.dim==='branch'&&hasBr?brn:r.item),x,sn=name;
+    if((f&&s<f)||(t&&s>t)||!(hasBr?psel[pk(brn,r.item)]:sel[r.item]))return;
+    var name=sum?'รวมที่เลือก':(hasBr&&st.dim==='branch'?brn:(hasBr&&st.dim==='both'?brn+' · '+r.item:r.item)),x,sn=name;
     if(st.mode==='yoy'){x=r.d.getMonth();sn=name+' '+yr(r.d.getFullYear())}else x=key(r.d);
     (data[sn]=data[sn]||{})[x]=(data[sn][x]||0)+r[m];xs[x]=1;
   });
@@ -380,7 +431,7 @@ function draw(){
   var total=0,best='-',bv=-1,pk='-',pv=-1,pt={};
   c.names.forEach(function(n){var s=0;c.xk.forEach(function(x){var v=c.data[n][x]||0;s+=v;pt[x]=(pt[x]||0)+v});total+=s;if(s>bv){bv=s;best=n}});
   c.xk.forEach(function(x,i){if((pt[x]||0)>pv){pv=pt[x]||0;pk=c.xl[i]}});
-  var u=st.metric==='amt'?' กีบ':' ชิ้น';
+  var u=st.metric==='amt'?' บาท':' ชิ้น';
   $('kpis').innerHTML=[['ยอดรวมที่เลือก',nf.format(total)+u],['อันดับ 1',best],['ช่วงที่สูงสุด',pk+' ('+nf.format(Math.max(pv,0))+')'],['จำนวนช่วงเวลา',c.xk.length]].map(function(k){return '<div class="kpi"><small>'+k[0]+'</small><b>'+esc(k[1])+'</b></div>'}).join('');
   var h='<thead><tr><th>'+(st.mode==='yoy'?'เดือน':'ช่วงเวลา')+'</th>'+c.names.map(function(n){return '<th>'+esc(n)+'</th>'}).join('')+'<th>รวม</th></tr></thead><tbody>';
   var csv=[['ช่วงเวลา'].concat(c.names,['รวม'])];
@@ -390,7 +441,7 @@ function draw(){
   $('tb').innerHTML=c.names.length?h+'</tbody>':'<tbody><tr><td>เลือกรายการอย่างน้อย 1 รายการ</td></tr></tbody>';lastTable=csv;
 }
 function seg(id,k){$(id).onclick=function(e){var b=e.target.closest('button');if(!b)return;[].forEach.call($(id).children,function(x){x.classList.toggle('on',x===b)});st[k]=b.dataset.v;if(k==='mode')$('gran').style.opacity=st.mode==='yoy'?.4:1;draw()}}
-seg('gran','gran');seg('mode','mode');seg('metric','metric');seg('ctype','ctype');seg('dim','dim');
+seg('gran','gran');seg('mode','mode');seg('metric','metric');seg('ctype','ctype');seg('dim','dim');$('dim').addEventListener('click',function(e){if(e.target.closest('button'))dimSet=true});
 ['from','to','be','sum'].forEach(function(i){$(i).onchange=draw});
 $('csv').onclick=function(){
   if(!lastTable)return;
@@ -398,10 +449,10 @@ $('csv').onclick=function(){
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='sales-report.csv';a.click();
 };
 $('demo').onclick=function(){
-  var names=['กาแฟเย็น','ชาไทย','ครัวซองต์','เค้กช็อกโกแลต','น้ำส้มคั้น'],base=[120,90,60,40,30],a=[['วันที่','รายการ','จำนวน','ยอดขาย']],seed=7;
+  var names=['กาแฟเย็น','ชาไทย','ครัวซองต์','เค้กช็อกโกแลต','น้ำส้มคั้น'],base=[120,90,60,40,30],BR=['สาขาสยาม','สาขาเชียงใหม่','สาขาภูเก็ต'],a=[['วันที่','สาขา','รายการ','จำนวน','ยอดขาย']],seed=7;
   function rnd(){seed=(seed*9301+49297)%233280;return seed/233280}
   for(var y=2024;y<=2025;y++)for(var m=0;m<12;m++){var dim=new Date(y,m+1,0).getDate();
-    for(var d=1;d<=dim;d++)names.forEach(function(n,i){var q=Math.round(base[i]/10*(0.6+rnd()*0.8)*(1+(y-2024)*0.15)*(1+0.25*Math.sin((m-2)/12*6.28)));a.push([new Date(y,m,d,12),n,q,q*(35+i*15)])})}
+    for(var d=1;d<=dim;d++)BR.forEach(function(br,bi){names.forEach(function(n,i){if((bi===1&&i===4)||(bi===2&&i===3))return;var q=Math.max(1,Math.round((Math.round(base[i]/10*(0.6+rnd()*0.8)*(1+(y-2024)*0.15)*(1+0.25*Math.sin((m-2)/12*6.28))))*(1-bi*0.25)));a.push([new Date(y,m,d,12),br,n,q,q*(35+i*15)])})})}
   fileName='ข้อมูลตัวอย่าง.xlsx';pendFile=null;$('fmsg').textContent='กำลังใช้ข้อมูลตัวอย่าง (2 ปี 5 รายการ)';$('fmsg').className='msg';loadPending(a);
 };
 function readHash(){
@@ -412,7 +463,11 @@ function readHash(){
 window.addEventListener('hashchange',readHash);
 $('navBtn').onclick=function(){go(view==='report'?'import':'report')};
 $('toImp').onclick=function(){go('import')};
-$('goBtn').onclick=function(){location.hash='report'};
+$('goBtn').onclick=function(){
+  var toRep=function(){location.hash='report'};
+  var want=$('autoFile').checked&&window.showSaveFilePicker&&dirty&&dsRows.local&&dsRows.local.length;
+  if(want)fileSave().then(toRep,toRep);else toRep();
+};
 function go(v){
   if(v==='import'&&pwCfg&&!unlocked){openGate();return}
   if(location.hash==='#'+v)readHash();else location.hash=v;
@@ -478,7 +533,7 @@ function refreshBanner(){
   $('sbText').textContent=mode==='warn'
     ?'⚠ ข้อมูลชุดนี้ยังไม่ได้อยู่ในไฟล์ เก็บอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น คนอื่นที่เปิดไฟล์หรือลิงก์จะไม่เห็นข้อมูล ก่อนส่งให้ใคร ให้กดดาวน์โหลดไฟล์ที่พร้อมส่ง แล้วส่งไฟล์ที่ได้ (ไม่ใช่ไฟล์เดิม)'
     :'✔ ดาวน์โหลดแล้ว ส่งไฟล์ “รายงานยอดขาย.html” ที่เพิ่งได้ไปให้คนอื่น หรืออัปโหลดขึ้นเว็บโดยตั้งชื่อ index.html (ไฟล์เดิมที่เปิดอยู่นี้ยังไม่มีข้อมูลฝังอยู่)';
-  $('bdl').classList.toggle('hide',mode!=='warn');
+  $('bdl').classList.toggle('hide',mode!=='warn');$('bsave').classList.toggle('hide',mode!=='warn'||!window.showSaveFilePicker);
 }
 function scheduleSave(){if(!fhOk){dirty=true;dlDone=false}refreshBanner();clearTimeout(tmr);tmr=setTimeout(doSave,500)}
 function doSave(){
@@ -490,16 +545,18 @@ function doSave(){
     say(ok.length?'บันทึกแล้ว ('+ok.join(' + ')+') เวลา '+hhmm():'บันทึกอัตโนมัติไม่สำเร็จ (เบราว์เซอร์อาจปิดการเก็บข้อมูลไว้) ใช้ปุ่มดาวน์โหลดแทนได้',!ok.length);
   });
 }
-$('fsave').onclick=function(){
-  if(!window.showSaveFilePicker){say('เบราว์เซอร์นี้ไม่รองรับการบันทึกทับไฟล์ ใช้ปุ่มดาวน์โหลดแทน หรือเปิดด้วย Chrome / Edge',true);return}
+function fileSave(){
+  if(!window.showSaveFilePicker){say('เบราว์เซอร์นี้ไม่รองรับการบันทึกทับไฟล์ ใช้ปุ่มดาวน์โหลดแทน หรือเปิดด้วย Chrome / Edge',true);return Promise.resolve()}
   var snap=snapshot();
   var getH=fh?fh.queryPermission({mode:'readwrite'}).then(function(p){return p==='granted'?p:fh.requestPermission({mode:'readwrite'})}).then(function(p){if(p!=='granted')throw new Error('denied');return fh}):Promise.reject();
-  getH.catch(function(){return window.showSaveFilePicker({suggestedName:'รายงานยอดขาย.html',types:[{description:'ไฟล์ HTML',accept:{'text/html':['.html']}}]})})
+  return getH.catch(function(){return window.showSaveFilePicker({suggestedName:'รายงานยอดขาย.html',types:[{description:'ไฟล์ HTML',accept:{'text/html':['.html']}}]})})
     .then(function(h){fh=h;return idbSet('fh:'+STORE,h).catch(function(){})})
     .then(function(){return writeFile(snap)})
     .then(function(){fhOk=true;dirty=false;dlDone=false;refreshBanner();say('บันทึกทับไฟล์แล้ว เวลา '+hhmm()+' จากนี้การแก้ไขจะบันทึกลงไฟล์ให้อัตโนมัติ')})
     .catch(function(e){if(e&&e.name==='AbortError')return;say('บันทึกทับไฟล์ไม่สำเร็จ: '+(e&&e.message||e),true)});
-};
+}
+$('fsave').onclick=fileSave;
+$('bsave').onclick=fileSave;
 function doDownload(){
   var snap=snapshot();if(!snap.rows.length)return;
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buildHtml(snap)],{type:'text/html'}));a.download='รายงานยอดขาย.html';a.click();
@@ -521,7 +578,7 @@ function applySnap(E){
   }
   pwCfg=(E&&E.pw)||null;
 }
-function start(E){if(started)return;started=true;applySnap(E);dirty=!!(E&&E!==EMB&&E.rows&&E.rows.length);updPwUi();readHash();initBackend()}
+function start(E){if(started)return;started=true;if(!window.showSaveFilePicker)$('autoFileLbl').classList.add('hide');applySnap(E);dirty=!!(E&&E!==EMB&&E.rows&&E.rows.length);updPwUi();readHash();initBackend()}
 setTimeout(function(){start(EMB)},1500);
 Promise.all([idbGet(STORE).catch(function(){return null}),idbGet('fh:'+STORE).catch(function(){return null})]).then(function(r){
   var L=r[0];if(r[1])fh=r[1];
