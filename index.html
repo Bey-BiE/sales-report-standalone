@@ -348,7 +348,8 @@ function render(){
   if(!Object.keys(vp).length){var top5={};items.slice(0,5).forEach(function(i){top5[i]=1});branches.forEach(function(b){bitems[b].forEach(function(i){if(top5[i])vp[pk(b,i)]=1})})}
   psel=vp;
   if(hasBr&&!dimSet&&st.dim!=='both'){st.dim='both';[].forEach.call($('dim').children,function(x){x.classList.toggle('on',x.dataset.v==='both')})}
-  var t=rows.map(function(r){return +r.d}),mn=iso(new Date(Math.min.apply(null,t))),mx=iso(new Date(Math.max.apply(null,t))),rk=mn+'|'+mx;
+  var tmin=Infinity,tmax=-Infinity;rows.forEach(function(r){var v=+r.d;if(v<tmin)tmin=v;if(v>tmax)tmax=v});
+  var mn=iso(new Date(tmin)),mx=iso(new Date(tmax)),rk=mn+'|'+mx;
   if(rk!==rangeKey){rangeKey=rk;$('from').value=mn;$('to').value=mx}
   renderChips();draw();
 }
