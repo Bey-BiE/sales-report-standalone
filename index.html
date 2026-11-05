@@ -427,7 +427,7 @@ function draw(){
   var total=0,best='-',bv=-1,pk='-',pv=-1,pt={};
   c.names.forEach(function(n){var s=0;c.xk.forEach(function(x){var v=c.data[n][x]||0;s+=v;pt[x]=(pt[x]||0)+v});total+=s;if(s>bv){bv=s;best=n}});
   c.xk.forEach(function(x,i){if((pt[x]||0)>pv){pv=pt[x]||0;pk=c.xl[i]}});
-  var u=st.metric==='amt'?' บาท':' ชิ้น';
+  var u=st.metric==='amt'?' กีบ':' ชิ้น';
   $('kpis').innerHTML=[['ยอดรวมที่เลือก',nf.format(total)+u],['อันดับ 1',best],['ช่วงที่สูงสุด',pk+' ('+nf.format(Math.max(pv,0))+')'],['จำนวนช่วงเวลา',c.xk.length]].map(function(k){return '<div class="kpi"><small>'+k[0]+'</small><b>'+esc(k[1])+'</b></div>'}).join('');
   var corner=(hasBr&&st.dim==='branch')?'สาขา':((hasBr&&st.dim==='both')?'สาขา · รายการ':'รายการ');
   var h='<thead><tr><th>'+corner+'</th>'+c.xl.map(function(l){return '<th>'+esc(l)+'</th>'}).join('')+'<th>รวม</th></tr></thead><tbody>';
