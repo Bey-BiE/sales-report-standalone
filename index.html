@@ -124,6 +124,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
 .lgi span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lgi i{flex:none;width:12px;height:12px;border-radius:3px}
 .lgi.off{opacity:.4;text-decoration:line-through}
+#bpSel{min-width:180px;max-width:260px}
 </style>
 </head>
 <body>
@@ -189,6 +190,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--card);border
       <div class="f">กราฟ<div class="seg" id="ctype"><button data-v="line">เส้น</button><button data-v="bar" class="on">แท่งแนวตั้ง</button><button data-v="barh">แท่งแนวนอน</button></div></div>
       <label class="f">ตั้งแต่<input type="date" id="from"></label>
       <label class="f">ถึง<input type="date" id="to"></label>
+      <label class="f hide" id="bpF">สาขา<select id="bpSel" aria-label="เลือกสาขา"></select></label>
       <label class="f" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="be"> ปี พ.ศ.</label>
       <label class="f" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="sum"> รวมเป็นเส้นเดียว</label>
     </div>
@@ -217,7 +219,7 @@ var SRC='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
 var pwCfg=null,unlocked=false,okCrypto=!!(window.crypto&&crypto.subtle);
 var COLORS=['#3b5bfd','#ff7a59','#12b886','#f5b301','#a855f7','#06b6d4','#ef476f','#84cc16','#64748b','#0ea5e9'];
 var MTH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-var CHUNK=2000,branches=[],bsel={},hasBr=false,colorOf={},iq='',bq='',psel={},bitems={},dimSet=true,openB=null,hid={},lgNames=[],autoAmt=false;
+var CHUNK=2000,branches=[],bsel={},hasBr=false,colorOf={},iq='',bq='',psel={},bitems={},dimSet=true,openB=null,hid={},lgNames=[],autoAmt=false,bpick='',bselKey=null;
 var $=function(i){return document.getElementById(i)};
 var nf=new Intl.NumberFormat('th-TH',{maximumFractionDigits:2});
 var db=null,assets=null,isAdmin=false;
@@ -329,10 +331,12 @@ function render(){
   $('empty').classList.toggle('hide',!(home&&!rows.length));
   if(!rows.length&&chart){chart.destroy();chart=null}
   if(!home||!rows.length)return;
-  var tot={};rows.forEach(function(r){tot[r.item]=(tot[r.item]||0)+r.amt});
+  var NOB='(ไม่ระบุสาขา)';
+  if(bpick&&!rows.some(function(r){return (r.branch||NOB)===bpick}))bpick='';
+  var tot={};rows.forEach(function(r){if(!bpick||(r.branch||NOB)===bpick)tot[r.item]=(tot[r.item]||0)+r.amt});
   items=Object.keys(tot).sort(function(a,b){return tot[b]-tot[a]});
-  var cur={};items.forEach(function(i){if(sel[i])cur[i]=1});
-  if(!Object.keys(cur).length)items.slice(0,5).forEach(function(i){cur[i]=1});
+  var cur={};Object.keys(sel).forEach(function(k){if(sel[k])cur[k]=1});
+  if(!items.some(function(i){return cur[i]}))items.slice(0,5).forEach(function(i){cur[i]=1});
   sel=cur;
   var bt={};rows.forEach(function(r){var b=r.branch||'(ไม่ระบุสาขา)';bt[b]=(bt[b]||0)+r.amt});
   branches=Object.keys(bt).sort(function(a,b){return bt[b]-bt[a]});
@@ -341,13 +345,10 @@ function render(){
   if(!Object.keys(bc).length)branches.forEach(function(b){bc[b]=1});
   bsel=bc;
   $('bgrp').classList.add('hide');$('dimf').classList.toggle('hide',!hasBr);
-  var NOB='(ไม่ระบุสาขา)',pmap={};
-  rows.forEach(function(r){var b=r.branch||NOB;var m=pmap[b]||(pmap[b]={});m[r.item]=(m[r.item]||0)+r.amt});
-  bitems={};branches.forEach(function(b){var m=pmap[b]||{};bitems[b]=Object.keys(m).sort(function(x,y){return m[y]-m[x]})});
-  var vp={};branches.forEach(function(b){bitems[b].forEach(function(i){if(psel[pk(b,i)])vp[pk(b,i)]=1})});
-  if(!Object.keys(vp).length){var top5={};items.slice(0,5).forEach(function(i){top5[i]=1});branches.forEach(function(b){bitems[b].forEach(function(i){if(top5[i])vp[pk(b,i)]=1})})}
-  psel=vp;
-  if(hasBr&&!dimSet&&st.dim!=='both'){st.dim='both';[].forEach.call($('dim').children,function(x){x.classList.toggle('on',x.dataset.v==='both')})}
+  $('bpF').classList.toggle('hide',!hasBr);
+  var bk=branches.join('\u0001');
+  if(bk!==bselKey){bselKey=bk;$('bpSel').innerHTML='<option value="">ทุกสาขา</option>'+branches.map(function(b,i){return '<option value="'+i+'">'+esc(b)+'</option>'}).join('')}
+  $('bpSel').value=bpick?String(branches.indexOf(bpick)):'';
   var tmin=Infinity,tmax=-Infinity;rows.forEach(function(r){var v=+r.d;if(v<tmin)tmin=v;if(v>tmax)tmax=v});
   var mn=iso(new Date(tmin)),mx=iso(new Date(tmax)),rk=mn+'|'+mx;
   if(rk!==rangeKey){rangeKey=rk;$('from').value=mn;$('to').value=mx}
@@ -357,58 +358,29 @@ function yr(y){return $('be').checked?y+543:y}
 function mt(s,q){return !q||String(s).toLowerCase().indexOf(q)>=0}
 function chipHtml(name,on,attr,i){return '<span class="chip'+(on?' on':'')+'" tabindex="0" role="checkbox" aria-checked="'+(!!on)+'" title="'+esc(name)+'" '+attr+'="'+i+'"><i></i><span>'+esc(name)+'</span></span>'}
 function setSeg(id,v){[].forEach.call($(id).children,function(x){x.classList.toggle('on',x.dataset.v===v)})}
-function pk(b,i){return b+'\u0001'+i}
 function renderChips(){
-  $('igt').textContent=hasBr?'สาขา และรายการสินค้า':'รายการสินค้า';
-  $('chips').classList.toggle('grouped',hasBr);
-  var ih,total=0,on=0;
-  if(hasBr){
-    if(openB!==''&&branches.indexOf(openB)<0)openB=branches[0];
-    var iidx={};items.forEach(function(x,k){iidx[x]=k});
-    ih=branches.map(function(b,bi){
-      var its=bitems[b].filter(function(i){return mt(i,iq)||mt(b,iq)});
-      var n=0;bitems[b].forEach(function(i){total++;if(psel[pk(b,i)]){n++;on++}});
-      if(!its.length)return '';
-      var open=iq?true:(b===openB);
-      return '<div class="bg'+(open?' open':'')+'"><div class="bh"><button class="tg" data-tg="'+bi+'" aria-expanded="'+open+'"><span class="ar">▸</span><span>'+esc(b)+'</span><em class="cnt">'+n+'/'+bitems[b].length+'</em></button><span><button class="ghost" data-bb="'+bi+'" data-act="all">ทั้งสาขา</button><button class="ghost" data-bb="'+bi+'" data-act="none">ล้าง</button></span></div>'+
-        (open?'<div class="chips in">'+its.map(function(i){return chipHtml(i,psel[pk(b,i)],'data-p',bi+'|'+iidx[i])}).join('')+'</div>':'')+'</div>';
-    }).join('');
-  }else{
-    ih=items.map(function(it,i){return mt(it,iq)?chipHtml(it,sel[it],'data-i',i):''}).join('');
-    total=items.length;on=items.filter(function(k){return sel[k]}).length;
-  }
+  $('igt').textContent='รายการสินค้า';
+  $('chips').classList.remove('grouped');
+  var ih=items.map(function(it,i){return mt(it,iq)?chipHtml(it,sel[it],'data-i',i):''}).join('');
   $('chips').innerHTML=ih||'<span class="none">ไม่พบรายการ</span>';
-  $('isearch').classList.toggle('hide',total<=6);
-  $('icnt').textContent=on+'/'+total;
+  $('isearch').classList.toggle('hide',items.length<=6);
+  $('icnt').textContent=items.filter(function(k){return sel[k]}).length+'/'+items.length;
   paintDots();
 }
 function paintDots(){
   [].forEach.call($('chips').querySelectorAll('.chip'),function(c){
-    var k,on;
-    if(c.dataset.p!=null){var p=c.dataset.p.split('|'),b=branches[+p[0]],it=items[+p[1]];on=psel[pk(b,it)];k=st.dim==='both'?b+' · '+it:(st.dim==='branch'?b:it)}
-    else{k=items[+c.dataset.i];on=sel[k]}
-    c.firstChild.style.background=(on&&colorOf[k])?colorOf[k]:'';
+    var it=items[+c.dataset.i],k=it;
+    if(hasBr&&st.dim==='both')k=bpick?bpick+' · '+it:null;else if(hasBr&&st.dim==='branch')k=null;
+    c.firstChild.style.background=(sel[it]&&k&&colorOf[k])?colorOf[k]:'';
   });
 }
-$('chips').onclick=function(e){
-  var tg=e.target.closest('[data-tg]');
-  if(tg){var tb=branches[+tg.dataset.tg];openB=(openB===tb&&!iq)?'':tb;renderChips();var nb=$('chips').querySelector('[data-tg="'+tg.dataset.tg+'"]');nb&&nb.focus();return}
-  var bb=e.target.closest('[data-bb]');
-  if(bb){var b=branches[+bb.dataset.bb],set=bb.dataset.act==='all'?1:0;bitems[b].forEach(function(i){if(mt(i,iq)||mt(b,iq))psel[pk(b,i)]=set});renderChips();draw();return}
-  var c=e.target.closest('.chip');if(!c)return;
-  if(c.dataset.p!=null){var p=c.dataset.p.split('|'),k=pk(branches[+p[0]],items[+p[1]]);psel[k]=psel[k]?0:1;renderChips();draw();return}
-  var it=items[+c.dataset.i];sel[it]=sel[it]?0:1;renderChips();draw();
-};
+$('chips').onclick=function(e){var c=e.target.closest('.chip');if(!c)return;var it=items[+c.dataset.i];sel[it]=sel[it]?0:1;renderChips();draw()};
 $('chips').onkeydown=function(e){
-  if(e.key==='Enter'||e.key===' '){var c=e.target.closest('.chip');if(c){e.preventDefault();var q=c.dataset.p!=null?'[data-p="'+c.dataset.p+'"]':'[data-i="'+c.dataset.i+'"]';c.click();var n=$('chips').querySelector(q);n&&n.focus()}}
+  if(e.key==='Enter'||e.key===' '){var c=e.target.closest('.chip');if(c){e.preventDefault();var i=+c.dataset.i;c.click();var n=$('chips').querySelector('[data-i="'+i+'"]');n&&n.focus()}}
 };
-function eachPair(fn){branches.forEach(function(b){bitems[b].forEach(function(i){if(mt(i,iq)||mt(b,iq))fn(b,i)})})}
-$('all').onclick=function(){if(hasBr)eachPair(function(b,i){psel[pk(b,i)]=1});else items.forEach(function(i){if(mt(i,iq))sel[i]=1});renderChips();draw()};
-$('none').onclick=function(){
-  if(hasBr){if(!iq)psel={};else eachPair(function(b,i){psel[pk(b,i)]=0})}
-  else{if(!iq)sel={};else items.forEach(function(i){if(mt(i,iq))sel[i]=0})}
-  renderChips();draw();
-};
+$('all').onclick=function(){items.forEach(function(i){if(mt(i,iq))sel[i]=1});renderChips();draw()};
+$('none').onclick=function(){if(!iq)sel={};else items.forEach(function(i){if(mt(i,iq))sel[i]=0});renderChips();draw()};
+$('bpSel').onchange=function(){bpick=this.value===''?'':branches[+this.value];render()};
 $('bchips').onclick=function(e){var c=e.target.closest('.chip');if(!c)return;var b=branches[+c.dataset.b];bsel[b]=bsel[b]?0:1;renderChips();draw()};
 $('bchips').onkeydown=function(e){if(e.key==='Enter'||e.key===' '){var c=e.target.closest('.chip');if(c){e.preventDefault();var i=+c.dataset.b;c.click();var n=$('bchips').querySelector('[data-b="'+i+'"]');n&&n.focus()}}};
 $('ball').onclick=function(){branches.forEach(function(b){if(mt(b,bq))bsel[b]=1});renderChips();draw()};
@@ -432,7 +404,7 @@ function compute(){
   var f=$('from').value,t=$('to').value,m=st.metric,sum=$('sum').checked,data={},xs={};
   rows.forEach(function(r){
     var s=iso(r.d),brn=r.branch||'(ไม่ระบุสาขา)';
-    if((f&&s<f)||(t&&s>t)||!(hasBr?psel[pk(brn,r.item)]:sel[r.item]))return;
+    if((f&&s<f)||(t&&s>t)||!sel[r.item]||(bpick&&brn!==bpick))return;
     var name=sum?'รวมที่เลือก':(hasBr&&st.dim==='branch'?brn:(hasBr&&st.dim==='both'?brn+' · '+r.item:r.item)),x,sn=name;
     if(st.mode==='yoy'){x=r.d.getMonth();sn=name+' '+yr(r.d.getFullYear())}else x=key(r.d);
     (data[sn]=data[sn]||{})[x]=(data[sn][x]||0)+r[m];xs[x]=1;
